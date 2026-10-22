@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0C0E12" />
+  <meta name="description" content="LIGVOLT - Analisador de Viabilidade, Dimensionamento Elétrico, Laudo Técnico e Pedido de Aumento de Carga para Veículos Elétricos no Brasil (ABNT NBR 5410, NBR 17019, IEC 61851, CBMERJ 326/2025)." />
+  <title>LIGVOLT | Viabilidade, Dimensionamento Elétrico & Laudo Técnico VE</title>
+  
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/print.css" media="print" />
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- CABEÇALHO DA APLICAÇÃO -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <h1 class="brand-title">LIG<span class="accent">VOLT</span></h1>
+          <p class="brand-subtitle">Viabilidade, Dimensionamento & Laudo Técnico VE</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="norm-badge">NBR 5410</span>
+        <span class="norm-badge">NBR 17019</span>
+        <span class="norm-badge">CBMERJ 326/25</span>
+      </div>
+    </header>
+
+    <!-- DIAGNÓSTICO INTELIGENTE CONSOLIDADO (HERO CARD DESTACADO) -->
+    <section id="intelligentDiagnosticCard" class="diag-hero-card badge-apto" aria-live="polite">
+      <!-- Preenchido dinamicamente via UI Controller -->
+    </section>
+
+    <!-- NAVEGAÇÃO ENTRE ABAS -->
+    <nav class="tabs-navigation" role="tablist">
+      <button type="button" class="tab-btn active" data-tab="tab-dimensionamento" role="tab" aria-selected="true">
+        ⚡ 1. Dimensionamento Elétrico
+      </button>
+      <button type="button" class="tab-btn" data-tab="tab-seguranca" role="tab" aria-selected="false">
+        🛡️ 2. Segurança e Conformidade
+      </button>
+    </nav>
+
+    <!-- ====================================================================
+         ABA 1: DIMENSIONAMENTO ELÉTRICO
+         ==================================================================== -->
+    <main id="tab-dimensionamento" class="tab-pane active" role="tabpanel">
+
+      <!-- PRESETS RÁPIDOS DE INSTALAÇÃO -->
+      <div class="presets-bar">
+        <span class="presets-label">⚡ Cenários Pré-configurados:</span>
+        <button type="button" class="preset-chip" data-quick-preset="res-mono-32">Residencial 1x 32A (7,4 kW)</button>
+        <button type="button" class="preset-chip" data-quick-preset="condo-2x32">Condomínio 2x 32A (22 kW)</button>
+        <button type="button" class="preset-chip" data-quick-preset="comercial-4x32">Comercial 4x 32A Balanceado</button>
+      </div>
+
+      <!-- PAINEL: REDE E FORNECIMENTO ELÉTRICO -->
+      <section class="card-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">🔌 1. Rede e Fornecimento de Energia</h2>
+          <span class="form-hint">Padrão de entrada da edificação e quadro geral</span>
+        </div>
+
+        <div class="form-grid-3">
+          <!-- Tipo de Alimentação -->
+          <div class="form-group">
+            <label class="form-label">Tipo de Alimentação</label>
+            <div class="radio-tile-group">
+              <label class="radio-tile-label">
+                <input type="radio" name="supplyType" value="monofasica" />
+                <div class="radio-tile">Monofásica</div>
+              </label>
+              <label class="radio-tile-label">
+                <input type="radio" name="supplyType" value="bifasica" />
+                <div class="radio-tile">Bifásica</div>
+              </label>
+              <label class="radio-tile-label">
+                <input type="radio" name="supplyType" value="trifasica" checked />
+                <div class="radio-tile">Trifásica</div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Tensão Nominal -->
+          <div class="form-group">
+            <label class="form-label" for="voltagePreset">Tensão da Instalação</label>
+            <select id="voltagePreset" class="form-control">
+              <option value="220_380" selected>220V / 380V (Fase-Neutro: 220V, Fase-Fase: 380V)</option>
+              <option value="127_220">127V / 220V (Fase-Neutro: 127V, Fase-Fase: 220V)</option>
+              <option value="custom">Tensão Personalizada</option>
+            </select>
+          </div>
+
+          <!-- Distância até os Carregadores -->
+          <div class="form-group">
+            <label class="form-label" for="inputDistance">
+              Distância do Quadro (m)
+              <span class="form-hint">Comprimento do cabo</span>
+            </label>
+            <input type="number" id="inputDistance" class="form-control" min="1" max="500" value="25" step="1" />
+          </div>
+        </div>
+
+        <!-- Campos de Tensão Personalizada -->
+        <div id="customVoltageContainer" class="form-grid-2" style="display: none; margin-top: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="inputVoltageFN">Tensão Fase-Neutro (V)</label>
+            <input type="number" id="inputVoltageFN" class="form-control" value="220" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inputVoltageFF">Tensão Fase-Fase (V)</label>
+            <input type="number" id="inputVoltageFF" class="form-control" value="380" />
+          </div>
+        </div>
+
+        <!-- Disjuntor Geral e Demanda Existente -->
+        <div class="form-grid-2" style="margin-top: 16px;">
+          <!-- Disjuntor Geral -->
+          <div class="form-group">
+            <label class="form-label" for="inputMainBreaker">
+              Disjuntor Geral Existente (A)
+              <span class="form-hint">Capacidade de entrada</span>
+            </label>
+            <input type="number" id="inputMainBreaker" class="form-control" min="10" max="1000" value="100" />
+            <label class="checkbox-inline">
+              <input type="checkbox" id="chkMainBreakerUnknown" />
+              <span>Pendente de verificação no padrão de entrada</span>
+            </label>
+          </div>
+
+          <!-- Demanda Atual Existente -->
+          <div class="form-group">
+            <label class="form-label">
+              Demanda Elétrica Existente
+              <span class="form-hint">Consumo das outras cargas</span>
+            </label>
+            <div id="demandModeBox" class="form-grid-2" style="margin-bottom: 8px;">
+              <select id="selectDemandMode" class="form-control">
+                <option value="per_phase" selected>Informar por Fase (L1, L2, L3)</option>
+                <option value="total">Informar Valor Total</option>
+              </select>
+              <select id="selectDemandUnit" class="form-control">
+                <option value="A" selected>Unidade: Ampères (A)</option>
+                <option value="kVA">Unidade: Potência (kVA)</option>
+              </select>
+            </div>
+
+            <div id="demandTotalBox" style="display: none;">
+              <input type="number" id="inputDemandTotal" class="form-control" placeholder="Demanda total" value="40" />
+            </div>
+
+            <div id="demandPhaseBox" class="form-grid-3">
+              <input type="number" id="inputDemandL1" class="form-control" placeholder="Fase A (A)" value="30" title="Demanda na Fase A" />
+              <input type="number" id="inputDemandL2" class="form-control" placeholder="Fase B (A)" value="25" title="Demanda na Fase B" />
+              <input type="number" id="inputDemandL3" class="form-control" placeholder="Fase C (A)" value="20" title="Demanda na Fase C" />
+            </div>
+
+            <label class="checkbox-inline">
+              <input type="checkbox" id="chkDemandUnknown" />
+              <span>Demanda existente não medida / pendente de medição</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAINEL: PONTOS DE RECARGA (CARREGADORES) -->
+      <section class="card-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">🚗 2. Pontos de Recarga de Veículos Elétricos (Até 4 Carregadores)</h2>
+          <button type="button" id="btnAddCharger" class="btn-primary-action" style="font-size: 13px; padding: 6px 14px;">
+            + Adicionar Ponto de Recarga
+          </button>
+        </div>
+
+        <div id="chargersContainer" class="chargers-container">
+          <!-- Renderizado dinamicamente via UI Controller -->
+        </div>
+      </section>
+
+      <!-- PAINEL: CONDUTORES E CONDIÇÕES DE INSTALAÇÃO (NBR 5410) -->
+      <section class="card-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">📐 3. Parâmetros dos Cabos e Método de Instalação</h2>
+          <span class="form-hint">Critérios de dimensionamento ABNT NBR 5410</span>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label" for="selectCableInsulation">Condutor & Isolação</label>
+            <select id="selectCableInsulation" class="form-control">
+              <option value="PVC" selected>Cobre com Isolação PVC (70°C)</option>
+              <option value="XLPE">Cobre com Isolação XLPE / HEPR (90°C)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="selectInstallMethod">Método de Instalação</label>
+            <select id="selectInstallMethod" class="form-control">
+              <option value="B1" selected>Método B1: Eletroduto embutido em alvenaria ou aparente</option>
+              <option value="B2">Método B2: Cabo multipolar em eletroduto sobre parede</option>
+              <option value="C">Método C: Cabos fixados diretamente em parede</option>
+              <option value="F">Método F: Bandeja perfurada / Eletrocalha / Leito</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="selectGrouping">
+              Circuitos Agrupados
+              <span class="form-hint">Mesmo eletroduto/feixe</span>
+            </label>
+            <select id="selectGrouping" class="form-control">
+              <option value="1" selected>1 circuito exclusivo (Fator: 1,00)</option>
+              <option value="2">2 circuitos agrupados (Fator: 0,80)</option>
+              <option value="3">3 circuitos agrupados (Fator: 0,70)</option>
+              <option value="4">4 circuitos agrupados (Fator: 0,65)</option>
+              <option value="5">5 circuitos agrupados (Fator: 0,60)</option>
+              <option value="6">6 circuitos agrupados (Fator: 0,57)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-3" style="margin-top: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="selectAmbientTemp">Temperatura Ambiente</label>
+            <select id="selectAmbientTemp" class="form-control">
+              <option value="25">25°C (Ambiente refrigerado)</option>
+              <option value="30" selected>30°C (Referência padrão NBR 5410)</option>
+              <option value="35">35°C (Garagem quente / Área externa)</option>
+              <option value="40">40°C (Ambiente confinado / Exposição solar)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              Margem de Regime Contínuo (125%)
+              <span class="form-hint">Cargas contínuas > 3h</span>
+            </label>
+            <div style="margin-top: 6px;">
+              <label class="checkbox-inline">
+                <input type="checkbox" id="chkContinuousMargin" checked />
+                <span>Aplicar margem conservadora de 125% na corrente de projeto</span>
+              </label>
+              <p class="form-hint" style="margin-top: 4px;">Critério conservador para recarga contínua prolongada (boas práticas de engenharia).</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inputMaxDrop">
+              Limite de Queda de Tensão (%)
+              <span class="form-hint">Máx. NBR 5410: 4% terminal</span>
+            </label>
+            <input type="number" id="inputMaxDrop" class="form-control" min="1.0" max="7.0" step="0.5" value="4.0" />
+          </div>
+        </div>
+      </section>
+
+      <!-- PAINEL: RESULTADOS DO DIMENSIONAMENTO E BALANÇO DE FASES -->
+      <section class="card-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">📊 4. Dimensionamento dos Condutores, Proteções e Fases</h2>
+        </div>
+        <div id="sizingSummaryContainer">
+          <!-- Renderizado dinamicamente via UI Controller -->
+        </div>
+      </section>
+
+      <!-- PAINEL: COMPARATIVO CENÁRIO A vs CENÁRIO B -->
+      <section class="card-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">⚖️ 5. Comparativo de Topologias de Alimentação</h2>
+        </div>
+        <div id="scenariosComparisonContainer">
+          <!-- Renderizado dinamicamente via UI Controller -->
+        </div>
+      </section>
+    </main>
+
+    <!-- ====================================================================
+         ABA 2: SEGURANÇA E CONFORMIDADE (CHECKLIST NORMATIVO)
+         ==================================================================== -->
+    <section id="tab-seguranca" class="tab-pane" role="tabpanel">
+      <div class="card-panel">
+        <div class="checklist-toolbar">
+          <div>
+            <h2 class="panel-title">🛡️ Vistoria de Segurança e Conformidade Técnica</h2>
+            <p class="form-hint">Baseado na ABNT NBR 5410, NBR 17019, IEC 61851 e Nota CHEMG 326/2025 do CBMERJ</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btnCheckAllAdequate" class="btn-secondary">✓ Marcar Todos como Adequado</button>
+            <button type="button" id="btnResetChecklist" class="btn-secondary">↺ Resetar Vistoria</button>
+          </div>
+        </div>
+
+        <div id="checklistContainer" class="checklist-container">
+          <!-- Renderizado dinamicamente via UI Controller -->
+        </div>
+      </div>
+    </section>
+
+  </div> <!-- /app-container -->
+
+  <!-- ====================================================================
+       MODAL: CENTRAL DE LAUDOS, MEMÓRIA DE CÁLCULO E HOMOLOGAÇÃO
+       ==================================================================== -->
+  <div id="reportModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+    <div class="modal-window">
+      <!-- Barra Superior do Modal com Ações de Exportação e Compartilhamento -->
+      <div class="modal-header-bar">
+        <h3 id="reportModalTitle">📄 Central de Laudos Técnicos & Homologação</h3>
+        <div class="modal-actions">
+          <button type="button" id="btnShareModal" class="btn-modal-action" title="Compartilhar no WhatsApp ou outros apps">
+            📲 Compartilhar
+          </button>
+          <button type="button" id="btnCopyModal" class="btn-modal-action" title="Copiar resumo textual para colar onde quiser">
+            📋 Copiar Resumo
+          </button>
+          <button type="button" id="btnPrintReportModal" class="btn-print" title="Imprimir ou gerar arquivo PDF pelo navegador">
+            🖨️ Imprimir / PDF
+          </button>
+          <button type="button" id="btnCloseReport" class="btn-close-modal" aria-label="Fechar modal">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Abas de Documentos Técnicos -->
+      <div class="doc-tabs-bar">
+        <button type="button" class="doc-tab-btn active" data-doc="relatorio">
+          📄 Relatório Preliminar
+        </button>
+        <button type="button" class="doc-tab-btn" data-doc="laudo">
+          ⚖️ Laudo Técnico Pericial
+        </button>
+        <button type="button" class="doc-tab-btn" data-doc="memoria">
+          📐 Memória de Cálculo
+        </button>
+        <button type="button" class="doc-tab-btn" data-doc="concessionaria">
+          🏢 Pedido Concessionária
+        </button>
+        <button type="button" class="doc-tab-btn" data-doc="dossie">
+          📚 Dossiê Completo (Todos)
+        </button>
+      </div>
+
+      <div class="modal-scroll-area">
+        <!-- Campos Cadastrais para o Dossiê Formal -->
+        <div class="meta-input-grid">
+          <div class="meta-field">
+            <label for="metaClientName">Cliente / Condomínio / Edificação:</label>
+            <input type="text" id="metaClientName" placeholder="Ex: Condomínio Solar das Palmeiras" />
+          </div>
+          <div class="meta-field">
+            <label for="metaAddress">Endereço da Instalação:</label>
+            <input type="text" id="metaAddress" placeholder="Ex: Av. das Américas, 4200 - Barra, RJ" />
+          </div>
+          <div class="meta-field">
+            <label for="metaTechnician">Responsável Técnico / Engenheiro:</label>
+            <input type="text" id="metaTechnician" placeholder="Ex: Eng. Rodrigo C." />
+          </div>
+          <div class="meta-field">
+            <label for="metaCrea">Registro no CREA:</label>
+            <input type="text" id="metaCrea" placeholder="Ex: CREA-RJ 2026/12345-D" />
+          </div>
+          <div class="meta-field">
+            <label for="metaArt">Nº da ART / RRT:</label>
+            <input type="text" id="metaArt" placeholder="Ex: ART nº 20260987654" />
+          </div>
+          <div class="meta-field">
+            <label for="metaConcessionaria">Concessionária de Energia:</label>
+            <input type="text" id="metaConcessionaria" placeholder="Ex: Light / Enel / CPFL / Cemig" />
+          </div>
+          <div class="meta-field">
+            <label for="metaUcNumber">Nº da Unidade Consumidora (UC):</label>
+            <input type="text" id="metaUcNumber" placeholder="Ex: UC 1002345678" />
+          </div>
+          <div class="meta-field">
+            <label for="metaNotes">Observações de Campo:</label>
+            <input type="text" id="metaNotes" placeholder="Ex: Garagem térrea coberta e ventilada" />
+          </div>
+        </div>
+
+        <!-- Conteúdo do Documento Formatado -->
+        <div id="reportModalContent">
+          <!-- Gerado dinamicamente via UI Controller -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS DA APLICAÇÃO (MODULARES E NATIVOS) -->
+  <script src="js/electrical-tables.js"></script>
+  <script src="js/calculation-engine.js"></script>
+  <script src="js/compliance-rules.js"></script>
+  <script src="js/diagnostic-engine.js"></script>
+  <script src="js/report-generator.js"></script>
+  <script src="js/dossier-generator.js"></script>
+  <script src="js/ui-controller.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

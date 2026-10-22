@@ -1,0 +1,134 @@
+/**
+ * LIGVOLT - Folha de Estilos de Impressão e Exportação para PDF (Print CSS)
+ * Otimizado para economia de tinta, contraste perfeito e quebras de página
+ */
+
+@media print {
+  /* Oculta toda a interface do aplicativo web */
+  body, html {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    font-size: 10pt !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .app-header,
+  .tabs-navigation,
+  .diag-hero-card,
+  .tab-pane,
+  .modal-header-bar,
+  .meta-input-grid,
+  .btn-print,
+  .btn-close-modal,
+  .presets-bar {
+    display: none !important;
+  }
+
+  /* Exibe exclusivamente a área do relatório */
+  .modal-backdrop {
+    display: block !important;
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .modal-window {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .modal-scroll-area {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .report-document {
+    color: #111827 !important;
+    font-size: 9.5pt !important;
+    line-height: 1.4 !important;
+  }
+
+  .report-header {
+    border-bottom: 2pt solid #000000 !important;
+    padding-bottom: 8pt !important;
+    margin-bottom: 12pt !important;
+  }
+
+  .report-section {
+    margin-bottom: 14pt !important;
+    page-break-inside: avoid;
+  }
+
+  .section-title {
+    font-size: 11pt !important;
+    border-bottom: 1pt solid #94A3B8 !important;
+    color: #000000 !important;
+    padding-bottom: 3pt !important;
+    margin-bottom: 6pt !important;
+  }
+
+  .report-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 8.5pt !important;
+  }
+
+  .report-table th,
+  .report-table td {
+    border: 0.5pt solid #CBD5E1 !important;
+    padding: 4pt 6pt !important;
+    color: #1E293B !important;
+  }
+
+  .report-table th {
+    background: #F1F5F9 !important;
+    font-weight: bold !important;
+  }
+
+  .report-diag-box {
+    background: #F8FAFC !important;
+    border: 1pt solid #CBD5E1 !important;
+    padding: 8pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .report-diag-badge {
+    border: 1pt solid #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .status-pill {
+    border: 0.5pt solid #94A3B8 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .report-signatures {
+    margin-top: 30pt !important;
+    page-break-inside: avoid;
+  }
+
+  .report-disclaimer-box {
+    background: #FFFBEB !important;
+    border: 1pt solid #FCD34D !important;
+    padding: 8pt !important;
+    page-break-inside: avoid;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 12mm 10mm;
+  }
+}

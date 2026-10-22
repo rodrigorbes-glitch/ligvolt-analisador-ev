@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LIGVOLT | Execução de Testes Automatizados</title>
+  <style>
+    body {
+      background-color: #0C0E12;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 30px 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #14171F;
+      border: 1px solid #283040;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    h1 {
+      color: #9DEC0F;
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .test-output {
+      background: #090B0E;
+      border: 1px solid #283040;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+    .pass { color: #9DEC0F; }
+    .fail { color: #FF4D4D; }
+    .btn-run {
+      background: #9DEC0F;
+      color: #0E1116;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-run:hover {
+      background: #8BD70B;
+    }
+    a { color: #9DEC0F; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ LIGVOLT — Suíte de Testes Elétricos, Normativos e Dossiê</h1>
+    <p>Validação automatizada de regras ABNT NBR 5410, NBR 17019, IEC 61851, CBMERJ 326/2025, Laudos e Pedido de Aumento de Carga.</p>
+    <div style="margin-top: 14px;">
+      <button type="button" class="btn-run" id="btnRun">▶ Executar Todos os Testes</button>
+      <a href="../index.html" style="margin-left: 14px;">← Voltar ao Aplicativo</a>
+    </div>
+    <div id="testOutput" class="test-output">Clique em "Executar Todos os Testes" para iniciar.</div>
+  </div>
+
+  <script src="../js/electrical-tables.js"></script>
+  <script src="../js/calculation-engine.js"></script>
+  <script src="../js/compliance-rules.js"></script>
+  <script src="../js/diagnostic-engine.js"></script>
+  <script src="../js/dossier-generator.js"></script>
+
+  <script>
+    document.getElementById('btnRun').addEventListener('click', function () {
+      const output = document.getElementById('testOutput');
+      output.innerHTML = '';
+      
+      let logs = [];
+      let passed = 0;
+      let failed = 0;
+
+      function log(msg, type) {
+        logs.push(`<span class="${type || ''}">${msg}</span>`);
+      }
+
+      function assert(cond, name, detail) {
+        if (cond) {
+          log(`  ✅ [PASS] ${name}`, 'pass');
+          passed++;
+        } else {
+          log(`  ❌ [FAIL] ${name} ${detail ? '- ' + detail : ''}`, 'fail');
+          failed++;
+        }
+      }
+
+      const Tables = window.LigvoltTables;
+      const Engine = window.LigvoltEngine;
+      const Compliance = window.LigvoltCompliance;
+      const Diagnostic = window.LigvoltDiagnostic;
+      const Dossier = window.LigvoltDossier;
+
+      log('--- TESTE 1: Dimensionamento do PE (NBR 5410 Tabela 58) ---');
+      assert(Tables.calculateProtectiveConductor(2.5) === 2.5, 'Fase 2.5mm² -> PE 2.5mm²');
+      assert(Tables.calculateProtectiveConductor(6) === 6, 'Fase 6mm² -> PE 6mm²');
+      assert(Tables.calculateProtectiveConductor(16) === 16, 'Fase 16mm² -> PE 16mm²');
+      assert(Tables.calculateProtectiveConductor(25) === 16, 'Fase 25mm² -> PE 16mm²');
+      assert(Tables.calculateProtectiveConductor(35) === 16, 'Fase 35mm² -> PE 16mm²');
+      assert(Tables.calculateProtectiveConductor(50) === 25, 'Fase 50mm² -> PE 25mm² (50/2)');
+      assert(Tables.calculateProtectiveConductor(70) === 35, 'Fase 70mm² -> PE 35mm² (70/2)');
+
+      log('\n--- TESTE 2: Seleção de Disjuntores Comerciais ---');
+      assert(Tables.getNextCommercialBreaker(32) === 32, 'Corrente 32A -> Disjuntor 32A');
+      assert(Tables.getNextCommercialBreaker(32.1) === 40, 'Corrente 32.1A -> Disjuntor 40A');
+      assert(Tables.getNextCommercialBreaker(40) === 40, 'Corrente 40A -> Disjuntor 40A (margem 125%)');
+      assert(Tables.getNextCommercialBreaker(55) === 63, 'Corrente 55A -> Disjuntor 63A');
+
+      log('\n--- TESTE 3: 1 Carregador 32A Monofásico a 20m ---');
+      const res1 = Engine.calculateInstallation({
+        distance: 20,
+        supplyType: 'monofasica',
+        voltageSingle: 220,
+        mainBreaker: 63,
+        existingDemand: 15,
+        cableInsulation: 'PVC',
+        installationMethod: 'B1',
+        useContinuousMargin: true,
+        chargers: [{ id: 1, name: 'Wallbox 32A', nominalCurrent: 32, enabled: true, phaseConfig: 'L1-N' }]
+      });
+      assert(res1.status === 'OK', 'Cálculo executado com sucesso');
+      assert(res1.chargers[0].projectCurrent === 40, 'Corrente com margem 125% = 40A');
+      assert(res1.chargers[0].cableSection >= 6, `Cabo dimensionado: ${res1.chargers[0].cableSection}mm²`);
+      assert(res1.chargers[0].voltageDropPercent <= 4.0, `Queda: ${res1.chargers[0].voltageDropPercent}% <= 4%`);
+      assert(res1.comparison.recommendedScenario === 'B', 'Recomendado Cenário B para 1 carregador');
+
+      log('\n--- TESTE 4: 2 Carregadores 32A Trifásicos a 30m ---');
+      const res2 = Engine.calculateInstallation({
+        distance: 30,
+        supplyType: 'trifasica',
+        voltagePreset: '220_380',
+        mainBreaker: 100,
+        existingDemand: { L1: 20, L2: 20, L3: 20 },
+        chargers: [
+          { id: 1, name: 'EV 1', nominalCurrent: 32, enabled: true, phaseConfig: '3F' },
+          { id: 2, name: 'EV 2', nominalCurrent: 32, enabled: true, phaseConfig: '3F' }
+        ]
+      });
+      assert(res2.scenarioA.breakerRating >= 80, `Disjuntor alimentador Cenário A: ${res2.scenarioA.breakerRating}A`);
+      assert(res2.comparison.recommendedScenario === 'A', 'Recomendado Cenário A para múltiplos carregadores a 30m');
+
+      log('\n--- TESTE 5: Detecção de Sobrecarga e 4 Estados do Diagnóstico ---');
+      const resOver = Engine.calculateInstallation({
+        distance: 15,
+        supplyType: 'trifasica',
+        voltagePreset: '220_380',
+        mainBreaker: 63,
+        existingDemand: { L1: 45, L2: 45, L3: 45 },
+        chargers: [{ id: 1, name: 'Wallbox 32A', nominalCurrent: 32, enabled: true, phaseConfig: '3F' }]
+      });
+      assert(resOver.phaseSummary.isOverloaded === true, 'Sobrecarga detectada');
+      const diagOver = Diagnostic.evaluateDiagnostic(resOver, { item_grounding_pe: 'adequado', item_location: 'adequado', item_sprinklers: 'adequado' });
+      assert(diagOver.state === 'NAO_APTO', 'Diagnóstico NÃO APTO em caso de sobrecarga');
+
+      const resInc = Engine.calculateInstallation({
+        distance: 15,
+        supplyType: 'trifasica',
+        voltagePreset: '220_380',
+        mainBreaker: null,
+        chargers: [{ id: 1, name: 'Wallbox 32A', nominalCurrent: 32, enabled: true, phaseConfig: '3F' }]
+      });
+      const diagInc = Diagnostic.evaluateDiagnostic(resInc, {});
+      assert(diagInc.state === 'INCOMPLETA', 'Diagnóstico INCOMPLETA sem dados essenciais');
+
+      log('\n--- TESTE 6: Regra CBMERJ CHEMG 326/2025 ---');
+      const diagSpr = Diagnostic.evaluateDiagnostic(res1, { item_sprinklers: 'inadequado' });
+      assert(diagSpr.state === 'NAO_APTO', 'Garagem fechada sem sprinklers gera NÃO APTO');
+
+      log('\n--- TESTE 7: Laudo Técnico, Memória de Cálculo e Pedido Concessionária ---');
+      const diagAdeq = Diagnostic.evaluateDiagnostic(res1, {
+        item_location: 'adequado',
+        item_sprinklers: 'adequado',
+        item_grounding_pe: 'adequado',
+        item_panel_integrity: 'adequado',
+        item_dr_dps: 'inadequado'
+      });
+      const laudo = Dossier.buildTechnicalOpinion(res2, diagAdeq, {}, { clientName: 'Edifício Teste' });
+      assert(laudo.includes('LAUDO TÉCNICO DE ENGENHARIA ELÉTRICA'), 'Laudo técnico pericial gerado com sucesso');
+
+      const memoria = Dossier.buildCalculationMemory(res2, {});
+      assert(memoria.includes('MEMÓRIA DE CÁLCULO ELÉTRICO NORMATIVO'), 'Memória de cálculo gerada com sucesso');
+
+      const pedConc = Dossier.buildConcessionaireRequest(res2, { concessionaria: 'Light S.A.' });
+      assert(pedConc.includes('MEMORIAL DESCRITIVO PARA PEDIDO DE AUMENTO DE CARGA'), 'Pedido de aumento de carga para concessionária gerado');
+
+      log(`\n====================================================`);
+      log(`🏁 RESULTADO FINAL: ${passed} PASSARAM | ${failed} FALHARAM`, failed === 0 ? 'pass' : 'fail');
+      log(`====================================================`);
+
+      output.innerHTML = logs.join('\n');
+    });
+  </script>
+</body>
+</html>
