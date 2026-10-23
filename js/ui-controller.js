@@ -1,6 +1,6 @@
 /**
- * LIGVOLT - Controlador de Interface do Usuário (UI Controller)
- * Gerencia inputs, reatividade, renderização do checklist, cenários, laudos e compartilhamento
+ * LIGVOLT - Controlador de Interface do Usuário (UI Controller) - Redesign Light Mode SaaS
+ * Gerencia inputs, reatividade, renderização do checklist agrupado, cenários e laudos
  */
 
 (function (root, factory) {
@@ -23,7 +23,8 @@
   // Estado interno da aplicação
   let state = {
     activeTab: 'tab-dimensionamento',
-    activeDocType: 'relatorio', // 'relatorio', 'laudo', 'memoria', 'concessionaria', 'dossie'
+    activeDocType: 'relatorio',
+    showAdaptations: false,
     supplyType: 'trifasica',
     voltagePreset: '220_380',
     voltagePhaseNeutral: 220,
@@ -73,7 +74,7 @@
   }
 
   /**
-   * Renderiza a lista de carregadores na interface
+   * Renderiza a lista de carregadores na interface (Cards Compactos Light Mode)
    */
   function renderChargersList() {
     const container = document.getElementById('chargersContainer');
@@ -88,47 +89,50 @@
 
       const phaseOptions = getPhaseOptions(state.supplyType);
 
+      // Estima potência ativa do carregador
+      let voltage = state.voltagePreset === '127_220' ? (ch.phaseConfig === '3F' || ch.phaseConfig.includes('-L') ? 220 : 127) : (ch.phaseConfig === '3F' ? 380 : (ch.phaseConfig.includes('-L') ? 380 : 220));
+      let pKw = ch.phaseConfig === '3F' 
+        ? ((Math.sqrt(3) * voltage * ch.nominalCurrent * 0.99) / 1000).toFixed(1)
+        : ((voltage * ch.nominalCurrent * 0.99) / 1000).toFixed(1);
+
       card.innerHTML = `
         <div class="charger-card-header">
           <div class="charger-title-group">
             <span class="charger-badge">Ponto ${idx + 1}</span>
             <input type="text" class="charger-name-input" value="${escapeHtml(ch.name)}" data-action="update-name" data-id="${ch.id}" placeholder="Nome do ponto" />
+            <span class="charger-power-tag">${pKw} kW</span>
           </div>
           <div class="charger-card-actions">
             <label class="switch-toggle" title="Ativar/Desativar este carregador">
               <input type="checkbox" ${ch.enabled ? 'checked' : ''} data-action="toggle-charger" data-id="${ch.id}" />
-              <span class="slider round"></span>
+              <span class="slider"></span>
             </label>
             ${state.chargers.length > 1 ? `
-              <button type="button" class="btn-icon btn-remove-charger" data-action="remove-charger" data-id="${ch.id}" title="Remover carregador">
+              <button type="button" class="btn-icon-del" data-action="remove-charger" data-id="${ch.id}" title="Remover carregador">
                 ✕
               </button>
             ` : ''}
           </div>
         </div>
 
-        <div class="charger-card-body">
-          <div class="form-row">
-            <div class="form-col">
-              <label class="form-label">Corrente Nominal (A)</label>
-              <div class="input-with-presets">
-                <input type="number" class="form-control" min="6" max="100" step="1" value="${ch.nominalCurrent}" data-action="update-current" data-id="${ch.id}" />
-                <div class="quick-chips">
-                  <button type="button" class="chip ${ch.nominalCurrent === 16 ? 'active' : ''}" data-action="set-preset-current" data-id="${ch.id}" data-val="16">16A</button>
-                  <button type="button" class="chip ${ch.nominalCurrent === 32 ? 'active' : ''}" data-action="set-preset-current" data-id="${ch.id}" data-val="32">32A</button>
-                  <button type="button" class="chip ${ch.nominalCurrent === 40 ? 'active' : ''}" data-action="set-preset-current" data-id="${ch.id}" data-val="40">40A</button>
-                </div>
-              </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Corrente Nominal (A)</label>
+            <input type="number" class="form-control" min="6" max="100" step="1" value="${ch.nominalCurrent}" data-action="update-current" data-id="${ch.id}" />
+            <div class="quick-chips-inline">
+              <button type="button" class="chip ${ch.nominalCurrent === 16 ? 'active' : ''}" data-action="set-preset-current" data-id="${ch.id}" data-val="16">16A (3,7/11kW)</button>
+              <button type="button" class="chip ${ch.nominalCurrent === 32 ? 'active' : ''}" data-action="set-preset-current" data-id="${ch.id}" data-val="32">32A (7,4/22kW)</button>
+              <button type="button" class="chip ${ch.nominalCurrent === 40 ? 'active' : ''}" data-action="set-preset-current" data-id="${ch.id}" data-val="40">40A</button>
             </div>
+          </div>
 
-            <div class="form-col">
-              <label class="form-label">Fases de Alimentação</label>
-              <select class="form-control" data-action="update-phase" data-id="${ch.id}">
-                ${phaseOptions.map(opt => `
-                  <option value="${opt.value}" ${ch.phaseConfig === opt.value ? 'selected' : ''}>${opt.label}</option>
-                `).join('')}
-              </select>
-            </div>
+          <div class="form-group">
+            <label class="form-label">Fases de Alimentação</label>
+            <select class="form-control" data-action="update-phase" data-id="${ch.id}">
+              ${phaseOptions.map(opt => `
+                <option value="${opt.value}" ${ch.phaseConfig === opt.value ? 'selected' : ''}>${opt.label}</option>
+              `).join('')}
+            </select>
           </div>
         </div>
       `;
@@ -165,7 +169,7 @@
   }
 
   /**
-   * Renderiza a lista interativa de checklist de conformidade
+   * Renderiza a lista interativa de checklist agrupada em 4 categorias normativas
    */
   function renderChecklist() {
     const container = document.getElementById('checklistContainer');
@@ -173,59 +177,69 @@
 
     container.innerHTML = '';
 
-    Compliance.CHECKLIST_ITEMS.forEach(item => {
-      const currentVal = state.checklistResponses[item.id] || item.defaultStatus || 'nao_verificado';
+    // Agrupamento dos 13 itens
+    const categories = [
+      { name: 'Infraestrutura Elétrica', icon: '🔌' },
+      { name: 'Proteção & Segurança', icon: '🛡️' },
+      { name: 'Ambiente & Incêndio', icon: '🚒' },
+      { name: 'Equipamentos', icon: '⚡' },
+      { name: 'Documentação Técnica', icon: '📋' }
+    ];
 
-      const card = document.createElement('div');
-      card.className = `checklist-card status-border-${currentVal}`;
-      card.id = `card-${item.id}`;
+    categories.forEach(cat => {
+      const itemsInCat = Compliance.CHECKLIST_ITEMS.filter(i => i.category === cat.name);
+      if (itemsInCat.length === 0) return;
 
-      let classBadge = 'badge-norm';
-      if (item.classification.includes('CBMERJ') || item.classification.includes('Bombeiros')) {
-        classBadge = 'badge-fire';
-      } else if (item.classification.includes('Recomendação')) {
-        classBadge = 'badge-rec';
-      }
+      const groupDiv = document.createElement('div');
+      groupDiv.className = 'checklist-category-block';
+      groupDiv.innerHTML = `<h3 class="checklist-cat-title">${cat.icon} ${cat.name}</h3>`;
 
-      card.innerHTML = `
-        <div class="checklist-card-top">
-          <div class="checklist-header-title">
-            <span class="checklist-title-text">${item.title}</span>
-            <span class="norm-ref-pill ${classBadge}">${item.classification}</span>
+      itemsInCat.forEach(item => {
+        const currentVal = state.checklistResponses[item.id] || item.defaultStatus || 'nao_verificado';
+
+        const itemCard = document.createElement('div');
+        itemCard.className = `checklist-item-card`;
+        itemCard.id = `card-${item.id}`;
+
+        itemCard.innerHTML = `
+          <div class="check-top-row">
+            <span class="check-item-title">${item.title}</span>
+            <span class="check-norm-ref">${item.normativeRef} (${item.classification})</span>
           </div>
-          <span class="norm-reference"><small>${item.normativeRef}</small></span>
-        </div>
 
-        <p class="checklist-desc">${item.description}</p>
+          <p class="check-desc-text">${item.description}</p>
 
-        <div class="checklist-options-group">
-          <button type="button" class="btn-check-pill check-adeq ${currentVal === 'adequado' ? 'selected' : ''}" data-item="${item.id}" data-val="adequado">
-            ✓ Adequado
-          </button>
-          <button type="button" class="btn-check-pill check-inadeq ${currentVal === 'inadequado' ? 'selected' : ''}" data-item="${item.id}" data-val="inadequado">
-            ✗ Inadequado
-          </button>
-          <button type="button" class="btn-check-pill check-na ${currentVal === 'nao_aplicavel' ? 'selected' : ''}" data-item="${item.id}" data-val="nao_aplicavel">
-            — Não Aplicável
-          </button>
-          <button type="button" class="btn-check-pill check-pend ${currentVal === 'nao_verificado' ? 'selected' : ''}" data-item="${item.id}" data-val="nao_verificado">
-            ? Não Verificado
-          </button>
-        </div>
-
-        ${currentVal === 'inadequado' ? `
-          <div class="checklist-risk-alert">
-            <strong>⚠️ Risco e Consequência:</strong> ${item.inadequateRisk}
+          <div class="check-pills-row">
+            <button type="button" class="btn-check-pill check-adeq ${currentVal === 'adequado' ? 'selected' : ''}" data-item="${item.id}" data-val="adequado">
+              ✓ Adequado
+            </button>
+            <button type="button" class="btn-check-pill check-inadeq ${currentVal === 'inadequado' ? 'selected' : ''}" data-item="${item.id}" data-val="inadequado">
+              ✗ Inadequado
+            </button>
+            <button type="button" class="btn-check-pill check-na ${currentVal === 'nao_aplicavel' ? 'selected' : ''}" data-item="${item.id}" data-val="nao_aplicavel">
+              — Não Aplicável
+            </button>
+            <button type="button" class="btn-check-pill check-pend ${currentVal === 'nao_verificado' ? 'selected' : ''}" data-item="${item.id}" data-val="nao_verificado">
+              ? Não Verificado
+            </button>
           </div>
-        ` : ''}
-      `;
 
-      container.appendChild(card);
+          ${currentVal === 'inadequado' ? `
+            <div class="check-risk-box">
+              <strong>⚠️ Ponto de Atenção:</strong> ${item.inadequateRisk}
+            </div>
+          ` : ''}
+        `;
+
+        groupDiv.appendChild(itemCard);
+      });
+
+      container.appendChild(groupDiv);
     });
   }
 
   /**
-   * Executa a rotina central de recálculo e atualização de todas as seções
+   * Executa a rotina central de recálculo e atualização
    */
   function recalculateAndRender() {
     let existingDemandParam = null;
@@ -272,7 +286,7 @@
   }
 
   /**
-   * Renderiza o Card de Diagnóstico Inteligente destacado
+   * Renderiza o Card de Diagnóstico Principal (Light Mode com Drawer Expansível)
    */
   function renderDiagnosticCard(diagnostic, calcResult) {
     const card = document.getElementById('intelligentDiagnosticCard');
@@ -285,11 +299,13 @@
     else if (diagnostic.state === 'APTO_COM_ADEQUACOES') iconSymbol = '🟡';
     else if (diagnostic.state === 'INCOMPLETA') iconSymbol = '⚪';
 
+    const hasIssues = diagnostic.identifiedIssues.length > 0 || diagnostic.requiredAdaptations.length > 0;
+
     let issuesHtml = '';
     if (diagnostic.identifiedIssues.length > 0) {
       issuesHtml = `
-        <div class="diag-issues-section">
-          <h4 class="diag-section-title">Inconformidades ou Riscos Identificados:</h4>
+        <div style="margin-bottom: 12px;">
+          <strong style="font-size: 12.5px; color: #991B1B;">Pontos de Inconformidade / Risco:</strong>
           <ul class="diag-bullet-list">
             ${diagnostic.identifiedIssues.map(iss => `<li>⚠️ ${escapeHtml(iss)}</li>`).join('')}
           </ul>
@@ -300,8 +316,8 @@
     let adaptationsHtml = '';
     if (diagnostic.requiredAdaptations.length > 0) {
       adaptationsHtml = `
-        <div class="diag-adaptations-section">
-          <h4 class="diag-section-title">Adequações Necessárias para Viabilizar:</h4>
+        <div>
+          <strong style="font-size: 12.5px; color: var(--text-main);">Adequações Técnicas Recomendadas:</strong>
           <ol class="diag-ordered-list">
             ${diagnostic.requiredAdaptations.map(ad => `
               <li>
@@ -314,54 +330,44 @@
       `;
     }
 
-    let pendingHtml = '';
-    if (diagnostic.pendingVerifications.length > 0) {
-      pendingHtml = `
-        <div class="diag-pending-section">
-          <span class="pending-hint">🔍 <strong>Vistorias pendentes:</strong> ${diagnostic.pendingVerifications.length} item(ns) dependem de confirmação presencial.</span>
-        </div>
-      `;
-    }
-
     card.innerHTML = `
-      <div class="diag-top-banner">
-        <div class="diag-status-pill ${diagnostic.badgeClass}">
-          <span class="diag-icon">${iconSymbol}</span>
-          <span class="diag-badge-text">${diagnostic.badge}</span>
+      <div class="diag-header-row">
+        <div class="diag-badge-pill">
+          <span>${iconSymbol}</span>
+          <span>${diagnostic.badge}</span>
         </div>
-        <div class="diag-actions-group">
-          <button type="button" class="btn-primary-action" id="btnOpenReport">
-            📄 Central de Laudos & Dossiê
+        ${hasIssues ? `
+          <button type="button" class="btn-toggle-adaptations" id="btnToggleAdaptations">
+            ${state.showAdaptations ? '▲ Ocultar Adequações' : '▼ Ver Adequações Necessárias'}
           </button>
-          <button type="button" class="btn-share-quick" id="btnShareQuick" title="Compartilhar no WhatsApp ou copiar resumo">
-            📲 Compartilhar
-          </button>
-        </div>
+        ` : ''}
       </div>
 
-      <div class="diag-headline-box">
-        <h3 class="diag-headline">${diagnostic.headline}</h3>
-        <p class="diag-summary-text">${diagnostic.summary}</p>
-      </div>
+      <h3 class="diag-headline">${diagnostic.headline}</h3>
+      <p class="diag-summary-text">${diagnostic.summary}</p>
 
       ${diagnostic.scenarioRationale ? `
-        <div class="diag-recommended-solution">
-          <strong>Solução Recomendada:</strong> ${diagnostic.recommendedScenario === 'A' ? 'Cenário A (Alimentador Único + Subquadro QGBT-EV)' : 'Cenário B (Circuitos Independentes Diretos)'}.
-          <span class="solution-details">${diagnostic.scenarioRationale}</span>
+        <div class="diag-recommended-box">
+          <strong>Topologia Sugerida:</strong> ${diagnostic.recommendedScenario === 'A' ? 'Cenário A (Alimentador Único + Subquadro QGBT-EV)' : 'Cenário B (Circuitos Independentes Diretos)'}
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${diagnostic.scenarioRationale}</div>
         </div>
       ` : ''}
 
-      ${issuesHtml}
-      ${adaptationsHtml}
-      ${pendingHtml}
+      <div class="diag-collapsible-area ${state.showAdaptations ? 'is-open' : ''}" id="diagCollapsibleArea">
+        ${issuesHtml}
+        ${adaptationsHtml}
+      </div>
     `;
 
-    // Re-bind dos botões
-    const reportBtn = document.getElementById('btnOpenReport');
-    if (reportBtn) reportBtn.addEventListener('click', () => openReportModal('relatorio'));
-
-    const shareBtn = document.getElementById('btnShareQuick');
-    if (shareBtn) shareBtn.addEventListener('click', shareQuickSummary);
+    const toggleBtn = document.getElementById('btnToggleAdaptations');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        state.showAdaptations = !state.showAdaptations;
+        const area = document.getElementById('diagCollapsibleArea');
+        if (area) area.classList.toggle('is-open', state.showAdaptations);
+        this.textContent = state.showAdaptations ? '▲ Ocultar Adequações' : '▼ Ver Adequações Necessárias';
+      });
+    }
   }
 
   /**
@@ -373,8 +379,8 @@
 
     if (calcResult.status === 'NO_CHARGERS') {
       summaryContainer.innerHTML = `
-        <div class="empty-state">
-          <p>Adicione ao menos um carregador ativo para visualizar o dimensionamento de cabos e proteções.</p>
+        <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+          Adicione ao menos um carregador ativo para visualizar o dimensionamento.
         </div>
       `;
       return;
@@ -383,58 +389,18 @@
     const { chargers, phaseSummary, input } = calcResult;
     const phaseBarsHtml = renderPhaseLoadMeters(phaseSummary, input.mainBreaker, input.supplyType);
 
-    const chargersCardsHtml = chargers.map((ch, idx) => `
-      <div class="sized-charger-box">
-        <div class="sized-ch-header">
-          <div>
-            <strong>${escapeHtml(ch.name)}</strong>
-            <span class="badge-tech">${ch.powerKW} kW • ${ch.nominalCurrent}A (${ch.phaseConfig})</span>
-          </div>
-          <span class="drop-badge ${ch.voltageDropCompliant ? 'drop-ok' : 'drop-warn'}">
-            Queda: ${ch.voltageDropPercent}% (${ch.voltageDropVolts}V)
-          </span>
-        </div>
-
-        <div class="sized-specs-grid">
-          <div class="spec-item">
-            <span class="spec-label">Condutor de Fase / Neutro</span>
-            <span class="spec-value">${ch.cableSection} mm² (Cobre ${input.cableInsulation})</span>
-          </div>
-          <div class="spec-item">
-            <span class="spec-label">Condutor Proteção (PE)</span>
-            <span class="spec-value">${ch.peSection} mm² (NBR 5410 Tab. 58)</span>
-          </div>
-          <div class="spec-item">
-            <span class="spec-label">Disjuntor Recomendado</span>
-            <span class="spec-value"><strong>${ch.recommendedBreaker} A</strong> (${ch.breakerPoles})</span>
-          </div>
-          <div class="spec-item">
-            <span class="spec-label">Corrente de Projeto (IB)</span>
-            <span class="spec-value">${ch.projectCurrent} A (Margem ${((input.continuousMargin - 1) * 100).toFixed(0)}%)</span>
-          </div>
-          <div class="spec-item spec-span-2">
-            <span class="spec-label">Proteção Diferencial Residual (DR)</span>
-            <span class="spec-value spec-small">${ch.drSpec}</span>
-          </div>
-        </div>
-      </div>
-    `).join('');
-
     summaryContainer.innerHTML = `
-      <div class="phase-meter-panel">
-        <h4 class="sub-title">Distribuição de Carga por Fase vs Limite do Disjuntor Geral</h4>
+      <div class="phase-bars-panel">
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
+          Balanço de Carga por Fase vs Limite do Disjuntor Geral
+        </h4>
         ${phaseBarsHtml}
-      </div>
-
-      <div class="sized-chargers-list">
-        <h4 class="sub-title" style="margin-top: 20px;">Dimensionamento Individual por Ponto de Recarga</h4>
-        ${chargersCardsHtml}
       </div>
     `;
   }
 
   /**
-   * Renderiza barras de progresso visual para as fases
+   * Renderiza barras de progresso visual para as fases (Light Mode)
    */
   function renderPhaseLoadMeters(phaseSummary, mainBreaker, supplyType) {
     if (!phaseSummary) return '';
@@ -444,143 +410,152 @@
     if (supplyType === 'trifasica') phasesToRender.push('C');
 
     return `
-      <div class="phase-bars-container">
+      <div>
         ${phasesToRender.map(p => {
           const pData = phaseSummary.phases[p];
           const total = pData.totalProject;
           const limit = mainBreaker || total;
           const pct = Math.min(100, Math.round((total / limit) * 100));
           const isOver = mainBreaker && total > mainBreaker;
-          const colorClass = isOver ? 'bar-danger' : (pct > 80 ? 'bar-warning' : 'bar-normal');
+          const fillClass = isOver ? 'fill-danger' : (pct > 80 ? 'fill-warn' : 'fill-ok');
 
           return `
             <div class="phase-meter-row">
               <div class="phase-meter-label">
-                <strong>Fase ${p}</strong>
-                <span class="phase-meter-values">
-                  ${pData.existing > 0 ? `Existente: ${pData.existing}A + ` : ''}
-                  Recarga: ${pData.evProject}A = <strong>${total}A</strong>
-                  ${mainBreaker ? ` / Geral: ${mainBreaker}A` : ''}
-                </span>
+                <span><strong>Fase ${p}</strong>: ${pData.existing > 0 ? `Existente ${pData.existing}A + ` : ''}Recarga ${pData.evProject}A = <strong>${total}A</strong></span>
+                <span>${mainBreaker ? `Limite Geral: ${mainBreaker}A (${pct}%)` : 'Geral não informado'}</span>
               </div>
-              <div class="progress-track">
-                <div class="progress-fill ${colorClass}" style="width: ${pct}%"></div>
+              <div class="progress-track-clean">
+                <div class="progress-fill-clean ${fillClass}" style="width: ${pct}%"></div>
               </div>
-              ${isOver ? `<span class="overload-pill">⚠️ SOBRECARGA (+${(total - mainBreaker).toFixed(1)}A)</span>` : ''}
+              ${isOver ? `<span style="font-size: 11px; font-weight: 700; color: #DC2626;">⚠️ Sobrecarga nesta fase (+${(total - mainBreaker).toFixed(1)}A)</span>` : ''}
             </div>
           `;
         }).join('')}
       </div>
-      ${supplyType === 'trifasica' ? `
-        <div class="unbalance-footer">
-          <span>Desbalanço entre fases: <strong>${phaseSummary.unbalancePercent}%</strong></span>
-          ${phaseSummary.unbalancePercent > 20 ? '<span class="text-warn"> (Recomenda-se redistribuir fases)</span>' : ''}
-        </div>
-      ` : ''}
     `;
   }
 
   /**
-   * Renderiza a comparação entre Cenário A e Cenário B
+   * Renderiza a comparação entre Cenário A e Cenário B (Dois Cartões Comparativos Limpos)
    */
   function renderScenariosComparison(calcResult) {
     const container = document.getElementById('scenariosComparisonContainer');
     if (!container || calcResult.status === 'NO_CHARGERS') return;
 
-    const { scenarioA, scenarioB, comparison, input } = calcResult;
+    const { scenarioA, scenarioB, comparison, input, chargers } = calcResult;
 
     container.innerHTML = `
-      <div class="comparison-banner ${comparison.recommendedScenario === 'A' ? 'recommends-a' : 'recommends-b'}">
-        <div class="recommendation-badge">
-          RECOMENDAÇÃO TÉCNICA: ${comparison.recommendedScenario === 'A' ? 'CENÁRIO A (Alimentador Único + Subquadro QGBT-EV)' : 'CENÁRIO B (Circuitos Independentes Diretos)'}
-        </div>
-        <p class="recommendation-text">${comparison.rationale}</p>
-      </div>
+      <div class="scenarios-comparison-grid">
+        <!-- CARD CENÁRIO A -->
+        <div class="scenario-card-clean ${comparison.recommendedScenario === 'A' ? 'is-recommended' : ''}">
+          <div>
+            <div class="scenario-header-clean">
+              <div>
+                <h4>Cenário A: Subquadro QGBT-EV</h4>
+                <span style="font-size: 11.5px; color: var(--text-muted);">Alimentador único até quadro secundário local</span>
+              </div>
+              ${comparison.recommendedScenario === 'A' ? '<span class="recommended-pill">✓ Recomendado</span>' : ''}
+            </div>
 
-      <div class="scenarios-grid">
-        <div class="scenario-card ${comparison.recommendedScenario === 'A' ? 'is-recommended' : ''}">
-          <div class="scenario-card-header">
-            <h4>Cenário A: Subquadro QGBT-EV</h4>
-            <span class="scenario-tag">Recomendado p/ Múltiplos ou Distâncias > 15m</span>
+            <table class="scenario-specs-table">
+              <tr>
+                <td>Cabo Alimentador:</td>
+                <td>${scenarioA.cableDescription}</td>
+              </tr>
+              <tr>
+                <td>Disjuntor Geral QGBT:</td>
+                <td>${scenarioA.breakerRating}A (${scenarioA.breakerPoles})</td>
+              </tr>
+              <tr>
+                <td>Queda de Tensão:</td>
+                <td>${scenarioA.voltageDropPercent}% (no alimentador)</td>
+              </tr>
+              <tr>
+                <td>Condutor Proteção (PE):</td>
+                <td>${scenarioA.peSection} mm²</td>
+              </tr>
+              <tr>
+                <td>Proteções dos Carregadores:</td>
+                <td>Disjuntores + DRs 30mA locais no subquadro</td>
+              </tr>
+            </table>
           </div>
 
-          <div class="scenario-card-body">
-            <ul class="scenario-props">
-              <li>
-                <strong>Cabo Alimentador Geral:</strong>
-                <span>${scenarioA.cableDescription}</span>
-              </li>
-              <li>
-                <strong>Disjuntor no Quadro Geral:</strong>
-                <span>${scenarioA.breakerRating}A (${scenarioA.breakerPoles})</span>
-              </li>
-              <li>
-                <strong>Queda de Tensão no Alimentador:</strong>
-                <span>${scenarioA.voltageDropPercent}%</span>
-              </li>
-              <li>
-                <strong>Condutor PE do Alimentador:</strong>
-                <span>${scenarioA.peSection} mm²</span>
-              </li>
-              <li>
-                <strong>Proteções Locais no Subquadro:</strong>
-                <span>Disjuntor + DR 30mA individual por carregador</span>
-              </li>
-              <li>
-                <strong>Proteção contra Surtos:</strong>
-                <span>1x Conjunto DPS Classe II centralizado no subquadro</span>
-              </li>
-              <li>
-                <strong>Desligamento de Emergência:</strong>
-                <span>Botão de parada cogumelo integrado na área de recarga</span>
-              </li>
-            </ul>
-
-            <div class="scenario-benefits">
-              <strong>Vantagens Técnicas:</strong>
-              <ul>
-                ${comparison.scenarioAAdvantages.map(adv => `<li>✓ ${adv}</li>`).join('')}
+          <div>
+            <button type="button" class="scenario-details-btn" data-action="toggle-scenario-drawer" data-target="drawerA">
+              Ver Detalhes do Cenário A ▼
+            </button>
+            <div class="scenario-drawer" id="drawerA">
+              <p><strong>Vantagens Técnicas:</strong></p>
+              <ul style="padding-left: 16px; margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
+                ${comparison.scenarioAAdvantages.map(adv => `<li>${adv}</li>`).join('')}
               </ul>
             </div>
           </div>
         </div>
 
-        <div class="scenario-card ${comparison.recommendedScenario === 'B' ? 'is-recommended' : ''}">
-          <div class="scenario-card-header">
-            <h4>Cenário B: Circuitos Independentes Diretos</h4>
-            <span class="scenario-tag">Recomendado p/ 1 Carregador ou Distância Curta</span>
+        <!-- CARD CENÁRIO B -->
+        <div class="scenario-card-clean ${comparison.recommendedScenario === 'B' ? 'is-recommended' : ''}">
+          <div>
+            <div class="scenario-header-clean">
+              <div>
+                <h4>Cenário B: Circuitos Independentes</h4>
+                <span style="font-size: 11.5px; color: var(--text-muted);">Circuitos diretos do quadro principal por carregador</span>
+              </div>
+              ${comparison.recommendedScenario === 'B' ? '<span class="recommended-pill">✓ Recomendado</span>' : ''}
+            </div>
+
+            <table class="scenario-specs-table">
+              <tr>
+                <td>Cabos no Trajeto:</td>
+                <td>${scenarioB.chargersCount} cabos dedicados em paralelo</td>
+              </tr>
+              <tr>
+                <td>Disjuntores:</td>
+                <td>${chargers.map(c => `${c.recommendedBreaker}A`).join(', ')} (no quadro geral)</td>
+              </tr>
+              <tr>
+                <td>Queda de Tensão Média:</td>
+                <td>${(chargers.reduce((acc, c) => acc + c.voltageDropPercent, 0) / chargers.length).toFixed(1)}%</td>
+              </tr>
+              <tr>
+                <td>Fator de Agrupamento:</td>
+                <td>${input.fGroup.toFixed(2)} (gera derating térmico)</td>
+              </tr>
+              <tr>
+                <td>Local das Proteções:</td>
+                <td>Instalados no quadro principal distante</td>
+              </tr>
+            </table>
           </div>
 
-          <div class="scenario-card-body">
-            <ul class="scenario-props">
-              <li>
-                <strong>Circuitos Paralelos no Trajeto:</strong>
-                <span>${scenarioB.chargersCount} cabos dedicados percorrendo ${input.distance}m</span>
-              </li>
-              <li>
-                <strong>Disjuntores e DRs:</strong>
-                <span>Todos instalados no quadro geral principal distante</span>
-              </li>
-              <li>
-                <strong>Ocupação de Tubulações:</strong>
-                <span>${scenarioB.conduitOccupancy}</span>
-              </li>
-              <li>
-                <strong>Fator de Agrupamento Aplicável:</strong>
-                <span>${input.fGroup.toFixed(2)} (induz derating térmico dos cabos)</span>
-              </li>
-            </ul>
-
-            <div class="scenario-benefits">
-              <strong>Vantagens Técnicas:</strong>
-              <ul>
-                ${comparison.scenarioBAdvantages.map(adv => `<li>✓ ${adv}</li>`).join('')}
+          <div>
+            <button type="button" class="scenario-details-btn" data-action="toggle-scenario-drawer" data-target="drawerB">
+              Ver Detalhes do Cenário B ▼
+            </button>
+            <div class="scenario-drawer" id="drawerB">
+              <p><strong>Vantagens Técnicas:</strong></p>
+              <ul style="padding-left: 16px; margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
+                ${comparison.scenarioBAdvantages.map(adv => `<li>${adv}</li>`).join('')}
               </ul>
             </div>
           </div>
         </div>
       </div>
     `;
+
+    // Bind dos botões de gaveta de detalhes
+    container.querySelectorAll('[data-action="toggle-scenario-drawer"]').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const targetId = this.dataset.target;
+        const drawer = document.getElementById(targetId);
+        if (drawer) {
+          const isOpen = drawer.classList.toggle('is-open');
+          this.textContent = isOpen ? 'Ocultar Detalhes ▲' : (targetId === 'drawerA' ? 'Ver Detalhes do Cenário A ▼' : 'Ver Detalhes do Cenário B ▼');
+        }
+      });
+    });
   }
 
   /**
@@ -594,11 +569,8 @@
     if (!modal || !content) return;
 
     syncMetadataFromInputs();
-
-    // Renderiza o documento ativo
     renderActiveDocument(calcResult, diagnostic);
 
-    // Marca o botão da aba do modal como ativo
     document.querySelectorAll('.doc-tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.doc === state.activeDocType);
     });
@@ -620,14 +592,13 @@
     } else if (state.activeDocType === 'concessionaria') {
       content.innerHTML = Dossier.buildConcessionaireRequest(calcResult, state.reportMetadata);
     } else if (state.activeDocType === 'dossie') {
-      // Dossiê Completo Unificado
       content.innerHTML = `
         ${Report.buildReportHTML(calcResult, diagnostic, state.checklistResponses, state.reportMetadata)}
-        <div style="page-break-before: always; margin-top: 40px; border-top: 2px dashed #94A3B8; padding-top: 20px;"></div>
+        <div style="page-break-before: always; margin-top: 30px; border-top: 2px dashed #94A3B8; padding-top: 20px;"></div>
         ${Dossier.buildTechnicalOpinion(calcResult, diagnostic, state.checklistResponses, state.reportMetadata)}
-        <div style="page-break-before: always; margin-top: 40px; border-top: 2px dashed #94A3B8; padding-top: 20px;"></div>
+        <div style="page-break-before: always; margin-top: 30px; border-top: 2px dashed #94A3B8; padding-top: 20px;"></div>
         ${Dossier.buildCalculationMemory(calcResult, state.reportMetadata)}
-        <div style="page-break-before: always; margin-top: 40px; border-top: 2px dashed #94A3B8; padding-top: 20px;"></div>
+        <div style="page-break-before: always; margin-top: 30px; border-top: 2px dashed #94A3B8; padding-top: 20px;"></div>
         ${Dossier.buildConcessionaireRequest(calcResult, state.reportMetadata)}
       `;
     }
@@ -662,7 +633,7 @@
   }
 
   /**
-   * Compartilhamento Rápido (WhatsApp / Web Share API / Copiar Texto)
+   * Compartilhamento WhatsApp / Web Share
    */
   async function shareQuickSummary() {
     const { calcResult, diagnostic } = recalculateAndRender();
@@ -674,12 +645,12 @@
       `*Resumo:* ${diagnostic.summary}\n` +
       `*Status Geral:* ${diagnostic.headline}\n\n` +
       `*PONTOS DE RECARGA:*\n${chargersList}\n\n` +
-      `*TOPOLOGIA RECOMENDADA:* ${diagnostic.recommendedScenario === 'A' ? 'Cenário A (Alimentador Único + Subquadro QGBT-EV)' : 'Cenário B (Circuitos Independentes)'}\n\n` +
+      `*TOPOLOGIA RECOMENDADA:* ${diagnostic.recommendedScenario === 'A' ? 'Cenário A (Subquadro QGBT-EV)' : 'Cenário B (Circuitos Independentes)'}\n\n` +
       `*PRINCIPAIS PROVIDÊNCIAS:*\n` +
       (diagnostic.requiredAdaptations.length > 0 
         ? diagnostic.requiredAdaptations.slice(0, 3).map((a, i) => `${i + 1}. ${a.action}`).join('\n')
         : 'Nenhuma inconformidade impeditiva identificada.') +
-      `\n\n_Avaliação técnica preliminar conforme ABNT NBR 5410, NBR 17019 e CBMERJ 326/2025._`;
+      `\n\n_Avaliação técnica conforme ABNT NBR 5410, NBR 17019 e CBMERJ 326/2025._`;
 
     if (navigator.share) {
       try {
@@ -689,26 +660,20 @@
           url: window.location.href
         });
         return;
-      } catch (err) {
-        // Fallback se cancelado ou não suportado
-      }
+      } catch (err) {}
     }
 
-    // Fallback WhatsApp
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textToShare)}`;
     window.open(whatsappUrl, '_blank');
   }
 
-  /**
-   * Copia o resumo técnico para a área de transferência
-   */
   async function copySummaryToClipboard() {
     const { calcResult, diagnostic } = recalculateAndRender();
     const textToShare = `⚡ LIGVOLT | LAUDO E MEMORIAL DE RECARGA DE VE\n` +
       `Diagnóstico: ${diagnostic.badge} - ${diagnostic.headline}\n` +
       `Instalação: ${diagnostic.summary}\n` +
       `Solução Recomendada: ${diagnostic.recommendedScenario === 'A' ? 'Cenário A (Subquadro QGBT-EV)' : 'Cenário B (Circuitos Diretos)'}\n` +
-      `Link da ferramenta: ${window.location.href}`;
+      `Link: ${window.location.href}`;
 
     try {
       await navigator.clipboard.writeText(textToShare);

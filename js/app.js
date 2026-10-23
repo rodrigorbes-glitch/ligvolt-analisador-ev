@@ -1,5 +1,5 @@
 /**
- * LIGVOLT - Aplicação Principal (App Entry Point)
+ * LIGVOLT - Aplicação Principal (App Entry Point) - Redesign Light Mode SaaS
  * Integração de Eventos DOM, Dossiê, Laudo e Compartilhamento
  */
 
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Inicializa checklist
   UI.initChecklistState();
 
-  // 1. Vinculação das Abas Principais
+  // 1. Vinculação das Abas Principais (Dimensionamento e Segurança)
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-pane');
 
@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
     syncFormInputsWithState();
     UI.renderChargersList();
     UI.recalculateAndRender();
+    UI.showToast('✓ Cenário aplicado com sucesso!');
   }
 
   // 3. Sincronização dos Inputs do Formulário com o Estado
@@ -165,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const isCustom = UI.state.voltagePreset === 'custom';
     const customContainer = document.getElementById('customVoltageContainer');
     if (customContainer) {
-      customContainer.style.display = isCustom ? 'flex' : 'none';
+      customContainer.style.display = isCustom ? 'grid' : 'none';
     }
   }
 
@@ -285,13 +286,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const phaseBox = document.getElementById('demandPhaseBox');
     const modeSelectBox = document.getElementById('demandModeBox');
 
-    if (modeSelectBox) modeSelectBox.style.display = isKnown ? 'block' : 'none';
+    if (modeSelectBox) modeSelectBox.style.display = isKnown ? 'grid' : 'none';
 
     if (totalBox) {
       totalBox.style.display = (isKnown && !isPerPhase) ? 'block' : 'none';
     }
     if (phaseBox) {
-      phaseBox.style.display = (isKnown && isPerPhase) ? 'flex' : 'none';
+      phaseBox.style.display = (isKnown && isPerPhase) ? 'grid' : 'none';
     }
   }
 
@@ -341,6 +342,18 @@ document.addEventListener('DOMContentLoaded', function () {
     inputMaxDrop.addEventListener('input', function () {
       UI.state.maxVoltageDrop = parseFloat(this.value) || 4.0;
       UI.recalculateAndRender();
+    });
+  }
+
+  // Acordeão de Configurações Avançadas
+  const btnToggleAdvanced = document.getElementById('btnToggleAdvanced');
+  const accordionContent = document.getElementById('accordionAdvancedContent');
+  const accordionArrow = document.getElementById('accordionArrow');
+
+  if (btnToggleAdvanced && accordionContent) {
+    btnToggleAdvanced.addEventListener('click', function () {
+      const isOpen = accordionContent.classList.toggle('is-open');
+      if (accordionArrow) accordionArrow.textContent = isOpen ? '▲' : '▼';
     });
   }
 
@@ -442,15 +455,14 @@ document.addEventListener('DOMContentLoaded', function () {
       if (card) {
         card.querySelectorAll('.btn-check-pill').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-        card.className = `checklist-card status-border-${val}`;
 
-        let riskBox = card.querySelector('.checklist-risk-alert');
+        let riskBox = card.querySelector('.check-risk-box');
         if (val === 'inadequado') {
           const itemDef = Compliance.CHECKLIST_ITEMS.find(i => i.id === itemId);
           if (!riskBox && itemDef) {
             riskBox = document.createElement('div');
-            riskBox.className = 'checklist-risk-alert';
-            riskBox.innerHTML = `<strong>⚠️ Risco e Consequência:</strong> ${itemDef.inadequateRisk}`;
+            riskBox.className = 'check-risk-box';
+            riskBox.innerHTML = `<strong>⚠️ Ponto de Atenção:</strong> ${itemDef.inadequateRisk}`;
             card.appendChild(riskBox);
           }
         } else if (riskBox) {
@@ -485,27 +497,27 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // 12. Modal de Dossiê, Laudo e Relatório
+  const btnExportHeader = document.getElementById('btnExportHeader');
+  if (btnExportHeader) btnExportHeader.addEventListener('click', () => UI.openReportModal('relatorio'));
+
+  const btnExportBottom = document.getElementById('btnExportBottom');
+  if (btnExportBottom) btnExportBottom.addEventListener('click', () => UI.openReportModal('relatorio'));
+
+  const btnShareBottom = document.getElementById('btnShareBottom');
+  if (btnShareBottom) btnShareBottom.addEventListener('click', UI.shareQuickSummary);
+
   const btnCloseReport = document.getElementById('btnCloseReport');
-  if (btnCloseReport) {
-    btnCloseReport.addEventListener('click', UI.closeReportModal);
-  }
+  if (btnCloseReport) btnCloseReport.addEventListener('click', UI.closeReportModal);
 
   const btnPrintReportModal = document.getElementById('btnPrintReportModal');
-  if (btnPrintReportModal) {
-    btnPrintReportModal.addEventListener('click', UI.printReport);
-  }
+  if (btnPrintReportModal) btnPrintReportModal.addEventListener('click', UI.printReport);
 
   const btnShareModal = document.getElementById('btnShareModal');
-  if (btnShareModal) {
-    btnShareModal.addEventListener('click', UI.shareQuickSummary);
-  }
+  if (btnShareModal) btnShareModal.addEventListener('click', UI.shareQuickSummary);
 
   const btnCopyModal = document.getElementById('btnCopyModal');
-  if (btnCopyModal) {
-    btnCopyModal.addEventListener('click', UI.copySummaryToClipboard);
-  }
+  if (btnCopyModal) btnCopyModal.addEventListener('click', UI.copySummaryToClipboard);
 
-  // Alternância de tipos de documentos no Modal
   const docTabBtns = document.querySelectorAll('.doc-tab-btn');
   docTabBtns.forEach(btn => {
     btn.addEventListener('click', function () {
@@ -516,7 +528,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Re-renderização live dos metadados no modal
   const metaInputs = document.querySelectorAll('.meta-field input');
   metaInputs.forEach(input => {
     input.addEventListener('input', function () {
@@ -524,12 +535,41 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // Limpar / Reset Geral
+  function resetAllForm() {
+    UI.state.distance = 25;
+    UI.state.supplyType = 'trifasica';
+    UI.state.voltagePreset = '220_380';
+    UI.state.mainBreakerKnown = true;
+    UI.state.mainBreaker = 100;
+    UI.state.demandKnown = true;
+    UI.state.demandMode = 'per_phase';
+    UI.state.demandPhases = { L1: 30, L2: 25, L3: 20 };
+    UI.state.chargers = [
+      { id: 1, name: 'Carregador 1 (Vaga A)', nominalCurrent: 32, enabled: true, phaseConfig: '3F' },
+      { id: 2, name: 'Carregador 2 (Vaga B)', nominalCurrent: 32, enabled: true, phaseConfig: '3F' }
+    ];
+    Compliance.CHECKLIST_ITEMS.forEach(item => {
+      UI.state.checklistResponses[item.id] = item.defaultStatus || 'nao_verificado';
+    });
+    syncFormInputsWithState();
+    UI.renderChargersList();
+    UI.renderChecklist();
+    UI.recalculateAndRender();
+    UI.showToast('↺ Formulário reiniciado com os parâmetros padrão.');
+  }
+
+  const btnResetHeader = document.getElementById('btnResetHeader');
+  if (btnResetHeader) btnResetHeader.addEventListener('click', resetAllForm);
+
+  const btnResetBottom = document.getElementById('btnResetBottom');
+  if (btnResetBottom) btnResetBottom.addEventListener('click', resetAllForm);
+
+  // Fechar modal ao clicar fora ou com Escape
   const reportModal = document.getElementById('reportModal');
   if (reportModal) {
     reportModal.addEventListener('click', function (e) {
-      if (e.target === this) {
-        UI.closeReportModal();
-      }
+      if (e.target === this) UI.closeReportModal();
     });
   }
 
@@ -545,5 +585,5 @@ document.addEventListener('DOMContentLoaded', function () {
   UI.renderChecklist();
   UI.recalculateAndRender();
 
-  console.log('⚡ Ligvolt SPA com Central de Laudos, Memória de Cálculo e Pedido para Concessionária inicializado.');
+  console.log('⚡ LIGVOLT Light Mode SaaS inicializado com sucesso.');
 });
