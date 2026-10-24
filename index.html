@@ -21,42 +21,460 @@
         <div class="brand-logo-mark">⚡</div>
         <div class="brand-text">
           <h1>LIG<span class="accent">VOLT</span></h1>
-          <p class="brand-tagline">Dimensionamento Elétrico & Viabilidade VE</p>
+          <p class="brand-tagline">Vistoria Inteligente & Dimensionamento VE</p>
         </div>
       </div>
+
+      <!-- SELETOR DE MODO: VISTORIA GUIADA vs MODO AVANÇADO -->
+      <div class="mode-switch-container" role="tablist" aria-label="Modo de Operação">
+        <button type="button" class="mode-switch-btn active" id="btnModeVistoria" role="tab" aria-selected="true">
+          <span>📱 Vistoria Guiada</span>
+          <span class="mode-badge">Padrão</span>
+        </button>
+        <button type="button" class="mode-switch-btn" id="btnModeAvancado" role="tab" aria-selected="false">
+          <span>⚙️ Análise Técnica</span>
+          <span class="mode-badge">Engenharia</span>
+        </button>
+      </div>
+
       <div class="header-actions">
         <button type="button" class="btn-ghost" id="btnResetHeader" title="Reiniciar parâmetros com valores padrão">
-          ↺ Novo Cálculo
+          ↺ Novo
         </button>
         <button type="button" class="btn-primary-header" id="btnExportHeader" title="Visualizar e exportar laudo ou memória de cálculo">
-          📄 Exportar PDF / Dossiê
+          📄 Gerar Laudo PDF
         </button>
       </div>
     </header>
 
     <!-- ====================================================================
-         CARD DE DIAGNÓSTICO PRINCIPAL (HERO CARD REFINADO)
+         MODO PADRÃO: VISTORIA SIMPLIFICADA COM IA (WIZARD EM 4 ETAPAS)
          ==================================================================== -->
-    <section id="intelligentDiagnosticCard" class="diag-hero-card badge-apto" aria-live="polite">
-      <!-- Renderizado dinamicamente via UI Controller em tons suaves -->
-    </section>
+    <div id="mode-vistoria" class="mode-view">
+
+      <!-- STEPPER HORIZONTAL (4 ETAPAS) -->
+      <nav class="wizard-stepper" aria-label="Progresso da Vistoria">
+        <button type="button" class="wizard-step-node active" id="stepNode1" data-step="1">
+          <span class="step-node-number">1</span>
+          <span>1. Conhecer o Local</span>
+        </button>
+        <div class="step-divider-line"></div>
+        <button type="button" class="wizard-step-node" id="stepNode2" data-step="2">
+          <span class="step-node-number">2</span>
+          <span>2. Fotos Inteligentes</span>
+        </button>
+        <div class="step-divider-line"></div>
+        <button type="button" class="wizard-step-node" id="stepNode3" data-step="3">
+          <span class="step-node-number">3</span>
+          <span>3. Confirmação</span>
+        </button>
+        <div class="step-divider-line"></div>
+        <button type="button" class="wizard-step-node" id="stepNode4" data-step="4">
+          <span class="step-node-number">4</span>
+          <span>4. Diagnóstico</span>
+        </button>
+      </nav>
+
+      <!-- ETAPA 1: CONHECER O LOCAL -->
+      <div id="wizardStep1" class="wizard-step-pane active">
+        <div class="card-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <span class="panel-title-badge">1</span>
+              Conhecer o Imóvel e Necessidades de Recarga
+            </h2>
+            <span class="form-hint">Responda de forma simples sobre o local pretendido. Não há respostas erradas.</span>
+          </div>
+
+          <!-- Pergunta 1: Tipo de Local -->
+          <div class="wizard-question-box">
+            <h3 class="wizard-question-title">🏠 1. Qual o tipo de local?</h3>
+            <p class="wizard-question-subtitle">Selecione onde será realizada a instalação.</p>
+            <div class="visual-tiles-grid">
+              <label class="visual-tile-item">
+                <input type="radio" name="inspLocationType" value="residencia" class="visual-tile-input" checked />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🏡</span>
+                  <span class="tile-title">Residência</span>
+                  <span class="tile-sub">Casa unifamiliar</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspLocationType" value="condominio" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🏢</span>
+                  <span class="tile-title">Condomínio</span>
+                  <span class="tile-sub">Prédio residencial</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspLocationType" value="comercio" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🏬</span>
+                  <span class="tile-title">Comércio</span>
+                  <span class="tile-sub">Loja, clínica ou escritório</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspLocationType" value="estacionamento" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🅿️</span>
+                  <span class="tile-title">Estacionamento</span>
+                  <span class="tile-sub">Frotas ou rotativo</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Pergunta 2: Onde será instalado? -->
+          <div class="wizard-question-box">
+            <h3 class="wizard-question-title">📍 2. Onde o carregador ficará posicionado?</h3>
+            <p class="wizard-question-subtitle">O ambiente determina regras de segurança e proteção contra incêndio e água.</p>
+            <div class="visual-tiles-grid">
+              <label class="visual-tile-item">
+                <input type="radio" name="inspInstallArea" value="garagem_aberta" class="visual-tile-input" checked />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🚗</span>
+                  <span class="tile-title">Garagem Aberta</span>
+                  <span class="tile-sub">Coberta e ventilada</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspInstallArea" value="externa" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🌳</span>
+                  <span class="tile-title">Área Externa</span>
+                  <span class="tile-sub">Ao ar livre / tempo</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspInstallArea" value="garagem_fechada" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🚪</span>
+                  <span class="tile-title">Garagem Fechada</span>
+                  <span class="tile-sub">Com portão fechado</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspInstallArea" value="subsolo" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🏢</span>
+                  <span class="tile-title">Subsolo</span>
+                  <span class="tile-sub">Piso subterrâneo</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Pergunta 3: Quantidade de Veículos Simultâneos -->
+          <div class="wizard-question-box">
+            <h3 class="wizard-question-title">⚡ 3. Quantos veículos serão carregados ao mesmo tempo?</h3>
+            <p class="wizard-question-subtitle">De 1 a 4 veículos simultâneos.</p>
+            <div class="visual-tiles-grid">
+              <label class="visual-tile-item">
+                <input type="radio" name="inspVehicleCount" value="1" class="visual-tile-input" checked />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🚘</span>
+                  <span class="tile-title">1 Veículo</span>
+                  <span class="tile-sub">Ponto individual</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspVehicleCount" value="2" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🚘🚘</span>
+                  <span class="tile-title">2 Veículos</span>
+                  <span class="tile-sub">Dois pontos</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspVehicleCount" value="3" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🚗🚙🚗</span>
+                  <span class="tile-title">3 Veículos</span>
+                  <span class="tile-sub">Três pontos</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspVehicleCount" value="4" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🏎️🚗🚙🚗</span>
+                  <span class="tile-title">4 Veículos</span>
+                  <span class="tile-sub">Quatro pontos</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Pergunta 4: Tipo de Carregador Pretendido -->
+          <div class="wizard-question-box">
+            <h3 class="wizard-question-title">🔌 4. Qual o tipo de carregador pretendido?</h3>
+            <p class="wizard-question-subtitle">O Wallbox é mais rápido (32A); a tomada convencional/industrial é mais lenta (16A).</p>
+            <div class="visual-tiles-grid">
+              <label class="visual-tile-item">
+                <input type="radio" name="inspChargerType" value="wallbox" class="visual-tile-input" checked />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">⚡</span>
+                  <span class="tile-title">Wallbox Dedicado</span>
+                  <span class="tile-sub">32A (~7,4kW a 22kW)</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspChargerType" value="tomada" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🔌</span>
+                  <span class="tile-title">Tomada / Ponto Especial</span>
+                  <span class="tile-sub">16A (~3,5kW a 7kW)</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspChargerType" value="nao_sei" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">❓</span>
+                  <span class="tile-title">Ainda não definido</span>
+                  <span class="tile-sub">Avaliar recomendação</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Pergunta 5: Distância Aproximada -->
+          <div class="wizard-question-box">
+            <h3 class="wizard-question-title">📏 5. Qual a distância aproximada do quadro elétrico até a vaga?</h3>
+            <p class="wizard-question-subtitle">Importante para calcular a queda de tensão e a espessura dos cabos.</p>
+            <div class="visual-tiles-grid">
+              <label class="visual-tile-item">
+                <input type="radio" name="inspDistanceApprox" value="<10" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">📐</span>
+                  <span class="tile-title">Até 10 metros</span>
+                  <span class="tile-sub">Muito próximo</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspDistanceApprox" value="10-25" class="visual-tile-input" checked />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">📏</span>
+                  <span class="tile-title">10 a 25 metros</span>
+                  <span class="tile-sub">Distância típica</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspDistanceApprox" value="25-50" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🏗️</span>
+                  <span class="tile-title">25 a 50 metros</span>
+                  <span class="tile-sub">Médio alcance</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspDistanceApprox" value=">50" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🏢</span>
+                  <span class="tile-title">Mais de 50m</span>
+                  <span class="tile-sub">Longo trajeto</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspDistanceApprox" value="nao_sei" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">❓</span>
+                  <span class="tile-title">Não sei</span>
+                  <span class="tile-sub">Aferir em visita</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Pergunta 6: Cidade e Estado -->
+          <div class="wizard-question-box">
+            <h3 class="wizard-question-title">🏙️ 6. Qual a cidade e estado da instalação?</h3>
+            <p class="wizard-question-subtitle">Necessário para identificar normas locais do Corpo de Bombeiros (ex: CBMERJ no RJ) e concessionária.</p>
+            <div style="display: flex; gap: 10px; max-width: 480px; align-items: center;">
+              <input type="text" id="inspCityStateInput" class="form-input" placeholder="Ex: Rio de Janeiro - RJ ou São Paulo - SP" value="São Paulo - SP" />
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+              <button type="button" class="preset-chip" onclick="document.getElementById('inspCityStateInput').value='São Paulo - SP'">São Paulo - SP</button>
+              <button type="button" class="preset-chip" onclick="document.getElementById('inspCityStateInput').value='Rio de Janeiro - RJ'">Rio de Janeiro - RJ</button>
+              <button type="button" class="preset-chip" onclick="document.getElementById('inspCityStateInput').value='Belo Horizonte - MG'">Belo Horizonte - MG</button>
+              <button type="button" class="preset-chip" onclick="document.getElementById('inspCityStateInput').value='Curitiba - PR'">Curitiba - PR</button>
+              <button type="button" class="preset-chip" onclick="document.getElementById('inspCityStateInput').value='Porto Alegre - RS'">Porto Alegre - RS</button>
+              <button type="button" class="preset-chip" onclick="document.getElementById('inspCityStateInput').value='Brasília - DF'">Brasília - DF</button>
+            </div>
+          </div>
+
+          <!-- Rodapé do Passo 1 -->
+          <div class="wizard-footer-nav">
+            <div></div>
+            <button type="button" class="btn-wizard-nav btn-wizard-primary" id="btnNextStep1">
+              Avançar para Fotografias ➔
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 2: FOTOGRAFIAS INTELIGENTES -->
+      <div id="wizardStep2" class="wizard-step-pane">
+        <div class="card-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <span class="panel-title-badge">2</span>
+              Fotografias Inteligentes da Instalação
+            </h2>
+            <span class="form-hint">Tire fotos pelo celular ou anexe imagens da sua galeria. A IA interpretará os disjuntores e proteções.</span>
+          </div>
+
+          <!-- BANNER DE SEGURANÇA ELÉTRICA OBRIGATÓRIO -->
+          <div class="safety-alert-banner">
+            <span class="safety-icon">⚠️</span>
+            <div>
+              <strong>Atenção Absoluta à Segurança Elétrica</strong>
+              <p>
+                <strong>NUNCA</strong> abra tampas de proteção internas com barramentos energizados expostos nem toque em fios ou disjuntores. Fotografe sempre à distância, mantendo afastamento seguro. Se o quadro exigir chaves ou ferramentas, solicite a um eletricista habilitado.
+              </p>
+            </div>
+          </div>
+
+          <!-- GRID DE CAPTURA DAS 6 FOTOS -->
+          <div class="photos-capture-grid" id="photosCaptureContainer">
+            <!-- Renderizado dinamicamente via UI Controller com suporte a Câmera e Upload -->
+          </div>
+
+          <!-- Rodapé do Passo 2 -->
+          <div class="wizard-footer-nav">
+            <button type="button" class="btn-wizard-nav btn-wizard-back" id="btnBackStep2">
+              ⬅ Voltar
+            </button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn-wizard-nav btn-wizard-back" id="btnSkipPhotos">
+                Continuar sem Fotos ➔
+              </button>
+              <button type="button" class="btn-wizard-nav btn-wizard-ai" id="btnAnalyzeAI">
+                <span class="ai-sparkle">✨</span> Analisar Fotos com IA ➔
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 3: CONFIRMAÇÃO SIMPLIFICADA -->
+      <div id="wizardStep3" class="wizard-step-pane">
+        <div class="card-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <span class="panel-title-badge">3</span>
+              Confirmação e Validação dos Dados
+            </h2>
+            <span class="form-hint">Abaixo estão os dados identificados pelas fotos ou pré-avaliados. Confirme ou ajuste de forma simples.</span>
+          </div>
+
+          <!-- LISTA DE CARDS DE CONFIRMAÇÃO -->
+          <div class="confirmation-section" id="confirmationCardsContainer">
+            <!-- Gerado dinamicamente com base nas fotos e IA -->
+          </div>
+
+          <!-- Rodapé do Passo 3 -->
+          <div class="wizard-footer-nav">
+            <button type="button" class="btn-wizard-nav btn-wizard-back" id="btnBackStep3">
+              ⬅ Voltar para Fotos
+            </button>
+            <button type="button" class="btn-wizard-nav btn-wizard-primary" id="btnEvaluateFinal">
+              Ver Diagnóstico e Viabilidade ➔
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 4: DIAGNÓSTICO FINAL E ADEQUAÇÕES -->
+      <div id="wizardStep4" class="wizard-step-pane">
+        <!-- HERO CARD DE STATUS PRELIMINAR -->
+        <section id="wizardDiagnosticHeroCard" class="diag-hero-card badge-apto" aria-live="polite">
+          <!-- Renderizado dinamicamente -->
+        </section>
+
+        <!-- SEÇÕES DE AÇÕES CATEGORIZADAS -->
+        <div class="diag-report-grid">
+          <!-- Ações Críticas (Impeditivas) -->
+          <div class="diag-action-group" id="groupCriticalActions">
+            <h3 class="diag-action-group-title title-critica">
+              🚨 Adequações Críticas (Impedimentos Imediatos)
+            </h3>
+            <div id="listCriticalActions"></div>
+          </div>
+
+          <!-- Ações Necessárias (Adequações Elétricas Indispensáveis) -->
+          <div class="diag-action-group" id="groupNecessaryActions">
+            <h3 class="diag-action-group-title title-necessaria">
+              ⚠️ Adequações Necessárias (Indispensáveis para Viabilizar)
+            </h3>
+            <div id="listNecessaryActions"></div>
+          </div>
+
+          <!-- Ações Recomendadas (Boas Práticas e Conveniência) -->
+          <div class="diag-action-group" id="groupRecommendedActions">
+            <h3 class="diag-action-group-title title-recomendada">
+              💡 Ações Recomendadas (Boas Práticas & Segurança Adicional)
+            </h3>
+            <div id="listRecommendedActions"></div>
+          </div>
+
+          <!-- O que Fazer a Seguir (Próximos Passos) -->
+          <div class="diag-action-group" id="groupNextSteps">
+            <h3 class="diag-action-group-title title-proximos">
+              📋 Próximos Passos Recomendados
+            </h3>
+            <div id="listNextSteps"></div>
+          </div>
+        </div>
+
+        <!-- BOTÕES FINAIS DE AÇÃO -->
+        <div class="diag-bottom-actions">
+          <button type="button" class="btn-diag-action btn-diag-pdf" id="btnGenerateInspectionPDF">
+            📄 Gerar Laudo Preliminar PDF
+          </button>
+          <button type="button" class="btn-diag-action btn-diag-advanced" id="btnOpenInAdvancedMode">
+            ⚙️ Abrir na Análise Técnica (Engenharia)
+          </button>
+          <button type="button" class="btn-ghost" id="btnRestartInspection">
+            ↺ Nova Vistoria
+          </button>
+        </div>
+      </div>
+
+    </div>
 
     <!-- ====================================================================
-         NAVEGAÇÃO POR ABAS HORIZONTAIS
+         MODO AVANÇADO: ANÁLISE TÉCNICA E ENGENHARIA (PRESERVADO INTEGRALMENTE)
          ==================================================================== -->
-    <nav class="tabs-navigation" role="tablist">
-      <button type="button" class="tab-btn active" data-tab="tab-dimensionamento" role="tab" aria-selected="true">
-        ⚡ 1. Dimensionamento
-      </button>
-      <button type="button" class="tab-btn" data-tab="tab-seguranca" role="tab" aria-selected="false">
-        🛡️ 2. Segurança e Conformidade
-      </button>
-    </nav>
+    <div id="mode-avancado" class="mode-view is-hidden">
 
-    <!-- ====================================================================
-         ABA 1: DIMENSIONAMENTO ELÉTRICO
-         ==================================================================== -->
-    <main id="tab-dimensionamento" class="tab-pane active" role="tabpanel">
+      <!-- BANNER DE RETORNO À VISTORIA GUIADA -->
+      <div style="display: flex; justify-content: space-between; align-items: center; background: #F1F5F9; border: 1px solid var(--border-subtle); padding: 10px 16px; border-radius: var(--radius-sm); margin-bottom: 16px;">
+        <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600;">
+          ⚙️ <strong>Modo Engenharia Avançado:</strong> Dimensionamento completo de condutores, desequilíbrio e memória de cálculo.
+        </span>
+        <button type="button" class="btn-ghost" id="btnReturnToVistoria" style="padding: 4px 10px; font-size: 12px;">
+          ⬅ Voltar para Vistoria Guiada
+        </button>
+      </div>
+
+      <!-- CARD DE DIAGNÓSTICO PRINCIPAL DO MOTOR TÉCNICO -->
+      <section id="intelligentDiagnosticCard" class="diag-hero-card badge-apto" aria-live="polite">
+        <!-- Renderizado dinamicamente via UI Controller em tons suaves -->
+      </section>
+
+      <!-- NAVEGAÇÃO POR ABAS HORIZONTAIS -->
+      <nav class="tabs-navigation" role="tablist">
+        <button type="button" class="tab-btn active" data-tab="tab-dimensionamento" role="tab" aria-selected="true">
+          ⚡ 1. Dimensionamento
+        </button>
+        <button type="button" class="tab-btn" data-tab="tab-seguranca" role="tab" aria-selected="false">
+          🛡️ 2. Segurança e Conformidade
+        </button>
+      </nav>
+
+      <!-- ABA 1: DIMENSIONAMENTO ELÉTRICO -->
+      <main id="tab-dimensionamento" class="tab-pane active" role="tabpanel">
 
       <!-- PRESETS RÁPIDOS DE INSTALAÇÃO -->
       <div class="presets-bar">
@@ -340,7 +758,24 @@
       </div>
     </footer>
 
+    </div> <!-- /mode-avancado -->
+
   </div> <!-- /app-container -->
+
+  <!-- OVERLAY DE ANÁLISE MULTIMODAL COM IA -->
+  <div id="aiScanOverlay" class="ai-scan-overlay is-hidden" aria-live="assertive">
+    <div class="ai-scan-box">
+      <div class="ai-scan-radar">
+        <span class="ai-pulse">⚡</span>
+      </div>
+      <h3 class="ai-scan-title">Analisando Imagens com Inteligência Artificial</h3>
+      <p id="aiScanStatusText" class="ai-scan-status">Otimizando e preparando fotografias...</p>
+      <div class="ai-scan-progress-bar">
+        <div id="aiScanProgressFill" class="ai-scan-progress-fill"></div>
+      </div>
+      <span style="font-size: 11px; color: var(--text-muted);">Processamento visual em conformidade com NBR 5410 & NBR 17019</span>
+    </div>
+  </div>
 
   <!-- ====================================================================
          MODAL: CENTRAL DE LAUDOS TÉCNICOS & HOMOLOGAÇÃO
@@ -368,7 +803,10 @@
 
       <!-- Abas de Tipos de Documento -->
       <div class="doc-tabs-bar">
-        <button type="button" class="doc-tab-btn active" data-doc="relatorio">
+        <button type="button" class="doc-tab-btn active" data-doc="vistoria_preliminar">
+          📋 Laudo de Vistoria (IA)
+        </button>
+        <button type="button" class="doc-tab-btn" data-doc="relatorio">
           📄 Relatório Preliminar
         </button>
         <button type="button" class="doc-tab-btn" data-doc="laudo">
@@ -380,6 +818,10 @@
         <button type="button" class="doc-tab-btn" data-doc="concessionaria">
           🏢 Pedido Concessionária
         </button>
+        <button type="button" class="doc-tab-btn" data-doc="dossie">
+          📚 Dossiê Completo
+        </button>
+      </div>
         <button type="button" class="doc-tab-btn" data-doc="dossie">
           📚 Dossiê Completo
         </button>
@@ -437,6 +879,7 @@
   <script src="js/diagnostic-engine.js"></script>
   <script src="js/report-generator.js"></script>
   <script src="js/dossier-generator.js"></script>
+  <script src="js/smart-inspection.js"></script>
   <script src="js/ui-controller.js"></script>
   <script src="js/app.js"></script>
 </body>

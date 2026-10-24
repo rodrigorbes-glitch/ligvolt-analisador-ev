@@ -1,5 +1,5 @@
 /**
- * LIGVOLT - Suíte de Testes Automatizados para Motores Elétricos, Normativos e Dossiê
+ * LIGVOLT - Suíte de Testes Automatizados para Motores Elétricos, Normativos, Dossiê e Vistoria com IA
  */
 
 const Tables = require('../js/electrical-tables');
@@ -7,6 +7,7 @@ const Engine = require('../js/calculation-engine');
 const Compliance = require('../js/compliance-rules');
 const Diagnostic = require('../js/diagnostic-engine');
 const Dossier = require('../js/dossier-generator');
+const SmartInspection = require('../js/smart-inspection');
 
 function runAllTests() {
   console.log('====================================================');
@@ -56,7 +57,7 @@ function runAllTests() {
     installationMethod: 'B1',
     groupingCircuits: 1,
     ambientTemp: 30,
-    useContinuousMargin: true, // 125% -> IB = 40A
+    useContinuousMargin: true,
     chargers: [
       { id: 1, name: 'Wallbox 32A', nominalCurrent: 32, enabled: true, phaseConfig: 'L1-N' }
     ]
@@ -93,7 +94,7 @@ function runAllTests() {
   assert(res2.scenarioA.breakerRating >= 80, `Disjuntor alimentador Cenário A dimensionado: ${res2.scenarioA.breakerRating}A`);
   assert(res2.comparison.recommendedScenario === 'A', `Para 2 carregadores a 30m, Cenário A recomendado: ${res2.comparison.recommendedScenario}`);
 
-  // TESTE 5: Cenário com 4 Carregadores e Rede Trifásica Desequilibrada
+  // TESTE 5: 4 Carregadores com Fases Desequilibradas
   console.log('\n--- TESTE 5: 4 Carregadores com Fases Desequilibradas ---');
   const res4 = Engine.calculateInstallation({
     distance: 25,
@@ -121,7 +122,7 @@ function runAllTests() {
     distance: 15,
     supplyType: 'trifasica',
     voltagePreset: '220_380',
-    mainBreaker: 63, // Disjuntor geral de apenas 63A
+    mainBreaker: 63,
     existingDemand: { L1: 45, L2: 45, L3: 45 },
     chargers: [
       { id: 1, name: 'Wallbox 32A', nominalCurrent: 32, enabled: true, phaseConfig: '3F' }
@@ -144,7 +145,7 @@ function runAllTests() {
     distance: 15,
     supplyType: 'trifasica',
     voltagePreset: '220_380',
-    mainBreaker: null, // Pendente de verificação
+    mainBreaker: null,
     chargers: [
       { id: 1, name: 'Wallbox 32A', nominalCurrent: 32, enabled: true, phaseConfig: '3F' }
     ]
@@ -157,7 +158,7 @@ function runAllTests() {
   console.log('\n--- TESTE 8: Regra CBMERJ CHEMG 326/2025 (Sprinklers Inadequados) ---');
   const diagSprinklers = Diagnostic.evaluateDiagnostic(res1, {
     item_location: 'adequado',
-    item_sprinklers: 'inadequado', // Garagem fechada sem sprinklers
+    item_sprinklers: 'inadequado',
     item_grounding_pe: 'adequado',
     item_panel_integrity: 'adequado'
   });
@@ -208,6 +209,105 @@ function runAllTests() {
   assert(requestHTML.includes('MEMORIAL DESCRITIVO PARA PEDIDO DE AUMENTO DE CARGA'), 'Cabeçalho para concessionária gerado');
   assert(requestHTML.includes('Enel RJ'), 'Concessionária discriminada');
   assert(requestHTML.includes('Checklist de Documentos Anexos'), 'Checklist documental para homologação presente');
+
+  // =========================================================================
+  // NOVOS TESTES: VISTORIA PRELIMINAR INTELIGENTE (CASOS EXIGIDOS NA EVOLUÇÃO)
+  // =========================================================================
+  console.log('\n=============================================================');
+  console.log('🤖 TESTES DE VISTORIA INTELIGENTE & CASOS DE BORDA NORMATIVOS');
+  console.log('=============================================================');
+
+  // CASO 1: Local sem irregularidades aparentes, mas com demanda elétrica desconhecida
+  console.log('\n--- CASO 1: Vistoria sem irregularidades, mas demanda desconhecida ---');
+  const inspCase1 = {
+    localData: { locationType: 'residencia', installArea: 'garagem_aberta', vehicleCount: 1, chargerType: 'wallbox', distanceApprox: '10-25', cityState: 'Curitiba - PR' },
+    confirmations: { mainBreakerConfirmed: '50', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+    photos: []
+  };
+  const diagCase1 = SmartInspection.evaluateInspectionViability(inspCase1);
+  assert(diagCase1.state === 'APTO_COM_ADEQUACOES', 'Classificação deve ser APTO COM ADEQUAÇÕES');
+  assert(diagCase1.necessaryActions.some(a => a.includes('exclusivo')), 'Exige criação de circuito exclusivo');
+  assert(diagCase1.necessaryActions.some(a => a.includes('medição')), 'Exige medição de corrente de pico');
+
+  // CASO 2: Disjuntor legível e quadro sem informações suficientes
+  console.log('\n--- CASO 2: Disjuntor legível mas quadro sem espaço/informações suficientes ---');
+  const inspCase2 = {
+    localData: { locationType: 'condominio', installArea: 'garagem_aberta', vehicleCount: 1, chargerType: 'wallbox', distanceApprox: '25-50', cityState: 'São Paulo - SP' },
+    confirmations: { mainBreakerConfirmed: '63', groundingConfirmed: 'nao_sei', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'nao', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+    photos: []
+  };
+  const diagCase2 = SmartInspection.evaluateInspectionViability(inspCase2);
+  assert(diagCase2.necessaryActions.some(a => a.includes('subquadro') || a.includes('quadro')), 'Exige subquadro elétrico auxiliar por falta de espaço');
+  assert(diagCase2.pendingVerifications.some(p => p.includes('aterramento')), 'Registra pendência de teste de aterramento');
+
+  // CASO 3: Fotografia ilegível / sem dados visíveis
+  console.log('\n--- CASO 3: Fotografia ilegível / sem dados suficientes do disjuntor ---');
+  const inspCase3 = {
+    localData: { locationType: 'residencia', installArea: 'garagem_aberta', vehicleCount: 1, chargerType: 'wallbox', distanceApprox: '<10', cityState: 'Belo Horizonte - MG' },
+    confirmations: { mainBreakerConfirmed: 'nao_sei', groundingConfirmed: 'nao_sei', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'nao_sei', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+    photos: []
+  };
+  const diagCase3 = SmartInspection.evaluateInspectionViability(inspCase3);
+  assert(diagCase3.state === 'NECESSITA_VERIFICACAO', 'Sem dados suficientes do disjuntor e quadro, deve resultar em NECESSITA VERIFICAÇÃO TÉCNICA');
+
+  // CASO 4: Ausência confirmada de proteção necessária (Aterramento inexistente)
+  console.log('\n--- CASO 4: Ausência confirmada de aterramento (Risco Crítico) ---');
+  const inspCase4 = {
+    localData: { locationType: 'residencia', installArea: 'garagem_aberta', vehicleCount: 1, chargerType: 'wallbox', distanceApprox: '<10', cityState: 'Rio de Janeiro - RJ' },
+    confirmations: { mainBreakerConfirmed: '50', groundingConfirmed: 'nao', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+    photos: []
+  };
+  const diagCase4 = SmartInspection.evaluateInspectionViability(inspCase4);
+  assert(diagCase4.criticalActions.some(a => a.includes('aterramento')), 'Gera ação crítica imediata de implantação de aterramento TN-S');
+  assert(diagCase4.problemsFound.some(p => p.severity === 'critica'), 'Problema classificado com severidade crítica');
+
+  // CASO 5: Garagem fechada ou subsolo com restrições de segurança aplicáveis (Nota CBMERJ 326/2025)
+  console.log('\n--- CASO 5: Garagem em subsolo sem sprinklers (Restrição CBMERJ 326/2025) ---');
+  const inspCase5 = {
+    localData: { locationType: 'condominio', installArea: 'subsolo', vehicleCount: 2, chargerType: 'wallbox', distanceApprox: '25-50', cityState: 'Rio de Janeiro - RJ' },
+    confirmations: { mainBreakerConfirmed: '100', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'sim', cbmerjSprinklers: 'nao' },
+    photos: []
+  };
+  const diagCase5 = SmartInspection.evaluateInspectionViability(inspCase5);
+  assert(diagCase5.state === 'NAO_APTO', 'Subsolo sem sprinklers no RJ deve resultar em NÃO APTO');
+  assert(diagCase5.criticalActions.some(a => a.includes('sprinklers') || a.includes('externa')), 'Gera ação impeditiva de relocar ou instalar sprinklers');
+
+  // CASO 6: Sobrecarga crítica evidente no disjuntor geral
+  console.log('\n--- CASO 6: Sobrecarga crítica evidente (Disjuntor 40A vs 2 Wallboxes) ---');
+  const inspCase6 = {
+    localData: { locationType: 'residencia', installArea: 'garagem_aberta', vehicleCount: 2, chargerType: 'wallbox', distanceApprox: '<10', cityState: 'Campinas - SP' },
+    confirmations: { mainBreakerConfirmed: '40', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+    photos: []
+  };
+  const diagCase6 = SmartInspection.evaluateInspectionViability(inspCase6);
+  assert(diagCase6.state === 'NAO_APTO', 'Disjuntor 40A para 2 Wallboxes (64A) deve resultar em NÃO APTO');
+  assert(diagCase6.criticalActions.some(a => a.includes('aumento de carga')), 'Exige aumento de carga junto à concessionária');
+
+  // CASO 7: Vistoria sem fotografias (Permite conclusão manual com pendências)
+  console.log('\n--- CASO 7: Vistoria sem fotografias ---');
+  const inspCase7 = {
+    localData: { locationType: 'residencia', installArea: 'garagem_aberta', vehicleCount: 1, chargerType: 'tomada', distanceApprox: '<10', cityState: 'Porto Alegre - RS' },
+    confirmations: { mainBreakerConfirmed: '50', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'sim', capacityVerified: 'sim', cbmerjSprinklers: 'nao_se_aplica' },
+    photos: []
+  };
+  const diagCase7 = SmartInspection.evaluateInspectionViability(inspCase7);
+  assert(diagCase7.state === 'PRELIMINARMENTE_APTO' || diagCase7.state === 'APTO_COM_ADEQUACOES', 'Executa sem falhas mesmo sem fotos');
+
+  // CASO 8: Geração do Laudo Preliminar de Vistoria em PDF com evidências
+  console.log('\n--- CASO 8: Geração do Laudo Preliminar de Vistoria com Evidências ---');
+  const reportHtml = SmartInspection.buildPreliminaryInspectionReportHTML({
+    localData: inspCase1.localData,
+    confirmations: inspCase1.confirmations,
+    photos: [
+      { id: '1', categoryName: 'Foto Geral do Quadro', dataUrl: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==', timestamp: '24/10/2026 14:00' }
+    ],
+    clientMeta: { clientName: 'João da Silva', address: 'Rua das Palmeiras, 50', inspectorName: 'Técnico Especialista' }
+  }, diagCase1);
+
+  assert(reportHtml.includes('RELATÓRIO PRELIMINAR DE VISTORIA E VIABILIDADE'), 'Título do laudo preliminar gerado');
+  assert(reportHtml.includes('Evidências Fotográficas da Vistoria'), 'Seção de evidências fotográficas presente');
+  assert(reportHtml.includes('João da Silva'), 'Nome do cliente presente');
+  assert(reportHtml.includes('Natureza Preliminar Deste Relatório'), 'Aviso legal obrigatório presente');
 
   // RESUMO DOS TESTES
   console.log('\n====================================================');

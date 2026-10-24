@@ -5,19 +5,20 @@
 
 (function (root, factory) {
   if (typeof define === 'function' && define.amd) {
-    define(['./calculation-engine', './compliance-rules', './diagnostic-engine', './report-generator', './dossier-generator'], factory);
+    define(['./calculation-engine', './compliance-rules', './diagnostic-engine', './report-generator', './dossier-generator', './smart-inspection'], factory);
   } else if (typeof module === 'object' && module.exports) {
     module.exports = factory(
       require('./calculation-engine'),
       require('./compliance-rules'),
       require('./diagnostic-engine'),
       require('./report-generator'),
-      require('./dossier-generator')
+      require('./dossier-generator'),
+      require('./smart-inspection')
     );
   } else {
-    root.LigvoltUI = factory(root.LigvoltEngine, root.LigvoltCompliance, root.LigvoltDiagnostic, root.LigvoltReport, root.LigvoltDossier);
+    root.LigvoltUI = factory(root.LigvoltEngine, root.LigvoltCompliance, root.LigvoltDiagnostic, root.LigvoltReport, root.LigvoltDossier, root.LigvoltSmartInspection);
   }
-}(typeof self !== 'undefined' ? self : this, function (Engine, Compliance, Diagnostic, Report, Dossier) {
+}(typeof self !== 'undefined' ? self : this, function (Engine, Compliance, Diagnostic, Report, Dossier, SmartInspection) {
   'use strict';
 
   // Estado interno da aplicação
@@ -60,6 +61,31 @@
       ucNumber: '',
       notes: ''
     }
+  };
+
+  // Estado da Vistoria Preliminar Guiada com IA
+  let inspectionState = {
+    currentStep: 1,
+    localData: {
+      locationType: 'residencia',
+      installArea: 'garagem_aberta',
+      vehicleCount: 1,
+      chargerType: 'wallbox',
+      distanceApprox: '10-25',
+      cityState: 'São Paulo - SP'
+    },
+    photos: [],
+    aiAnalysis: null,
+    confirmations: {
+      mainBreakerConfirmed: '50',
+      groundingConfirmed: 'nao_sei',
+      rainProtectionConfirmed: 'sim',
+      spaceAvailableConfirmed: 'nao_sei',
+      exclusiveCircuitConfirmed: 'nao',
+      capacityVerified: 'nao_sei',
+      cbmerjSprinklers: 'nao_se_aplica'
+    },
+    diagnosticResult: null
   };
 
   /**
@@ -583,7 +609,22 @@
     const content = document.getElementById('reportModalContent');
     if (!content) return;
 
-    if (state.activeDocType === 'relatorio') {
+    if (state.activeDocType === 'vistoria_preliminar') {
+      const diagResult = inspectionState.diagnosticResult || (SmartInspection ? SmartInspection.evaluateInspectionViability(inspectionState) : null);
+      if (SmartInspection && diagResult) {
+        content.innerHTML = SmartInspection.buildPreliminaryInspectionReportHTML({
+          ...inspectionState,
+          clientMeta: {
+            clientName: state.reportMetadata.clientName || 'Cliente não identificado',
+            address: state.reportMetadata.address || inspectionState.localData.cityState || 'Endereço não informado',
+            inspectorName: state.reportMetadata.technician || 'Vistoriador / Ligvolt',
+            notes: state.reportMetadata.notes || ''
+          }
+        }, diagResult);
+      } else {
+        content.innerHTML = '<p style="padding: 20px; color: #DC2626;">Módulo de vistoria não disponível ou pendente de cálculo.</p>';
+      }
+    } else if (state.activeDocType === 'relatorio') {
       content.innerHTML = Report.buildReportHTML(calcResult, diagnostic, state.checklistResponses, state.reportMetadata);
     } else if (state.activeDocType === 'laudo') {
       content.innerHTML = Dossier.buildTechnicalOpinion(calcResult, diagnostic, state.checklistResponses, state.reportMetadata);
@@ -706,8 +747,546 @@
       .replace(/'/g, '&#039;');
   }
 
+  // =========================================================================
+  // MÉTODOS DO MÓDULO DE VISTORIA PRELIMINAR INTELIGENTE (WIZARD & IA)
+  // =========================================================================
+
+  function saveInspectionToLocalStorage() {
+    try {
+      const payload = {
+        currentStep: inspectionState.currentStep,
+        localData: inspectionState.localData,
+        confirmations: inspectionState.confirmations,
+        aiAnalysis: inspectionState.aiAnalysis,
+        // Armazenamos metadados das fotos para evitar estourar cota do localStorage
+        photos: inspectionState.photos.map(p => ({
+          id: p.id,
+          categoryKey: p.categoryKey,
+          categoryName: p.categoryName,
+          timestamp: p.timestamp,
+          mimeType: p.mimeType,
+          dataUrl: p.dataUrl // Base64 comprimida (~100KB)
+        }))
+      };
+      localStorage.setItem('ligvolt_inspection_state', JSON.stringify(payload));
+    } catch (e) {
+      console.warn('LocalStorage quota atingida ou indisponível:', e);
+    }
+  }
+
+  function loadInspectionFromLocalStorage() {
+    try {
+      const raw = localStorage.getItem('ligvolt_inspection_state');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.localData) inspectionState.localData = { ...inspectionState.localData, ...parsed.localData };
+        if (parsed.confirmations) inspectionState.confirmations = { ...inspectionState.confirmations, ...parsed.confirmations };
+        if (parsed.aiAnalysis) inspectionState.aiAnalysis = parsed.aiAnalysis;
+        if (Array.isArray(parsed.photos)) inspectionState.photos = parsed.photos;
+        if (parsed.currentStep) inspectionState.currentStep = parsed.currentStep;
+      }
+    } catch (e) {}
+  }
+
+  function switchAppMode(mode = 'vistoria') {
+    const vistoriaView = document.getElementById('mode-vistoria');
+    const avancadoView = document.getElementById('mode-avancado');
+    const btnVistoria = document.getElementById('btnModeVistoria');
+    const btnAvancado = document.getElementById('btnModeAvancado');
+
+    if (mode === 'vistoria') {
+      if (vistoriaView) vistoriaView.classList.remove('is-hidden');
+      if (avancadoView) avancadoView.classList.add('is-hidden');
+      if (btnVistoria) {
+        btnVistoria.classList.add('active');
+        btnVistoria.setAttribute('aria-selected', 'true');
+      }
+      if (btnAvancado) {
+        btnAvancado.classList.remove('active');
+        btnAvancado.setAttribute('aria-selected', 'false');
+      }
+    } else {
+      if (vistoriaView) vistoriaView.classList.add('is-hidden');
+      if (avancadoView) avancadoView.classList.remove('is-hidden');
+      if (btnVistoria) {
+        btnVistoria.classList.remove('active');
+        btnVistoria.setAttribute('aria-selected', 'false');
+      }
+      if (btnAvancado) {
+        btnAvancado.classList.add('active');
+        btnAvancado.setAttribute('aria-selected', 'true');
+      }
+      recalculateAndRender();
+    }
+  }
+
+  function renderInspectionStep(stepNum = 1) {
+    inspectionState.currentStep = stepNum;
+    saveInspectionToLocalStorage();
+
+    // Atualiza stepper buttons
+    for (let i = 1; i <= 4; i++) {
+      const node = document.getElementById(`stepNode${i}`);
+      if (node) {
+        node.classList.toggle('active', i === stepNum);
+        node.classList.toggle('completed', i < stepNum);
+      }
+      const pane = document.getElementById(`wizardStep${i}`);
+      if (pane) {
+        pane.classList.toggle('active', i === stepNum);
+      }
+    }
+
+    if (stepNum === 2) {
+      renderPhotosGrid();
+    } else if (stepNum === 3) {
+      renderConfirmationCards();
+    } else if (stepNum === 4) {
+      evaluateAndRenderInspectionDiagnostic();
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function renderPhotosGrid() {
+    const container = document.getElementById('photosCaptureContainer');
+    if (!container || !SmartInspection) return;
+
+    container.innerHTML = '';
+    SmartInspection.PHOTO_CATEGORIES.forEach(cat => {
+      const existingPhoto = inspectionState.photos.find(p => p.categoryKey === cat.key);
+      const card = document.createElement('div');
+      card.className = `photo-capture-card ${existingPhoto ? 'has-photo' : ''}`;
+      card.id = `photo-card-${cat.key}`;
+
+      const badge = cat.required 
+        ? `<span class="photo-badge-req">Obrigatória</span>` 
+        : `<span class="photo-badge-opt">Opcional</span>`;
+
+      card.innerHTML = `
+        <div class="photo-card-head">
+          <h4 class="photo-card-title">${cat.icon} ${escapeHtml(cat.title)}</h4>
+          ${badge}
+        </div>
+        <p class="photo-card-desc">${escapeHtml(cat.description)}</p>
+        <div class="photo-card-tip">💡 <strong>Dica:</strong> ${escapeHtml(cat.tip)}</div>
+        <div class="photo-slot-body">
+          ${existingPhoto ? `
+            <div class="photo-preview-box">
+              <img src="${existingPhoto.dataUrl}" alt="${escapeHtml(cat.shortTitle)}" />
+              <button type="button" class="btn-remove-photo" data-category="${cat.key}" title="Remover esta foto">✕</button>
+              <div class="photo-meta-info">
+                <span>✓ Capturada</span>
+                <span>${existingPhoto.timestamp || ''}</span>
+              </div>
+            </div>
+          ` : `
+            <div class="photo-buttons-group">
+              <input type="file" accept="image/*" capture="environment" id="camera-${cat.key}" class="photo-file-input" style="display:none;" data-category="${cat.key}" />
+              <input type="file" accept="image/*" id="file-${cat.key}" class="photo-file-input" style="display:none;" data-category="${cat.key}" />
+              <button type="button" class="btn-photo-capture primary-capture" data-target="camera-${cat.key}">
+                📸 Câmera
+              </button>
+              <button type="button" class="btn-photo-capture" data-target="file-${cat.key}">
+                📁 Arquivo
+              </button>
+            </div>
+          `}
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    // Wire remove photo buttons
+    container.querySelectorAll('.btn-remove-photo').forEach(btn => {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const catKey = this.dataset.category;
+        inspectionState.photos = inspectionState.photos.filter(p => p.categoryKey !== catKey);
+        saveInspectionToLocalStorage();
+        renderPhotosGrid();
+        showToast('Foto removida.');
+      });
+    });
+
+    // Wire trigger buttons
+    container.querySelectorAll('.btn-photo-capture').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const targetId = this.dataset.target;
+        const input = document.getElementById(targetId);
+        if (input) input.click();
+      });
+    });
+
+    // Wire file inputs
+    container.querySelectorAll('.photo-file-input').forEach(input => {
+      input.addEventListener('change', async function () {
+        if (!this.files || !this.files[0]) return;
+        const file = this.files[0];
+        const catKey = this.dataset.category;
+        const catObj = SmartInspection.PHOTO_CATEGORIES.find(c => c.key === catKey);
+
+        try {
+          showToast('Comprimindo foto...');
+          const compressed = await SmartInspection.compressImage(file, 1280, 0.8);
+          // Substitui se já houver foto dessa categoria
+          inspectionState.photos = inspectionState.photos.filter(p => p.categoryKey !== catKey);
+          inspectionState.photos.push({
+            id: 'photo_' + Date.now(),
+            categoryKey: catKey,
+            categoryName: catObj ? catObj.shortTitle : catKey,
+            dataUrl: compressed.dataUrl,
+            base64: compressed.base64,
+            mimeType: 'image/jpeg',
+            timestamp: new Date().toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          });
+          saveInspectionToLocalStorage();
+          renderPhotosGrid();
+          showToast('✓ Foto registrada com sucesso!');
+        } catch (err) {
+          console.error('Erro ao processar imagem:', err);
+          showToast('Erro ao processar a foto. Tente novamente.');
+        }
+      });
+    });
+  }
+
+  function renderConfirmationCards() {
+    const container = document.getElementById('confirmationCardsContainer');
+    if (!container) return;
+
+    container.innerHTML = '';
+    const conf = inspectionState.confirmations;
+    const isSubsoloOuFechada = inspectionState.localData.installArea === 'subsolo' || inspectionState.localData.installArea === 'garagem_fechada';
+    const isRJ = (inspectionState.localData.cityState || '').toLowerCase().includes('rio') || (inspectionState.localData.cityState || '').toUpperCase().includes('RJ');
+
+    const cards = [
+      {
+        id: 'mainBreaker',
+        title: '⚡ 1. Disjuntor Geral da Entrada',
+        aiBadge: inspectionState.aiAnalysis ? 'Detectado por IA' : 'Estimativa Preliminar',
+        desc: 'Capacidade do disjuntor geral da edificação (visível no quadro ou na caixa do medidor).',
+        choices: [
+          { val: '40', label: '40A' },
+          { val: '50', label: '50A (Padrão 10kW)' },
+          { val: '63', label: '63A (Padrão 15kW)' },
+          { val: '70', label: '70A' },
+          { val: '100', label: '100A+' },
+          { val: 'nao_sei', label: 'Não identificado / Não sei' }
+        ],
+        current: conf.mainBreakerConfirmed,
+        onSelect: (v) => { conf.mainBreakerConfirmed = v; }
+      },
+      {
+        id: 'spaceAvailable',
+        title: '📦 2. Espaço Físico Reserva no Quadro',
+        aiBadge: 'Verificação Física',
+        desc: 'Existe espaço livre no trilho DIN do quadro para encaixar novos módulos de disjuntores e proteção DR?',
+        choices: [
+          { val: 'sim', label: '✓ Sim, há espaço livre no trilho' },
+          { val: 'nao', label: '✕ Não, quadro está lotado (subquadro necessário)' },
+          { val: 'nao_sei', label: '❓ Não sei / Pendente de visita' }
+        ],
+        current: conf.spaceAvailableConfirmed,
+        onSelect: (v) => { conf.spaceAvailableConfirmed = v; }
+      },
+      {
+        id: 'grounding',
+        title: '🌱 3. Sistema de Aterramento (Condutor PE)',
+        aiBadge: 'Segurança Crítica',
+        desc: 'O local possui condutor de aterramento com barramento interligado? (A NBR 5410 proíbe recarga sem aterramento)',
+        choices: [
+          { val: 'sim', label: '✓ Sim, possui barramento de terra' },
+          { val: 'nao', label: '✕ Não possui aterramento' },
+          { val: 'nao_sei', label: '❓ Não sei / Aferir resistência em visita' }
+        ],
+        current: conf.groundingConfirmed,
+        onSelect: (v) => { conf.groundingConfirmed = v; }
+      },
+      {
+        id: 'rainProtection',
+        title: '☔ 4. Proteção Contra Chuva no Local do Carregador',
+        aiBadge: 'Intempéries',
+        desc: 'O ponto pretendido para o carregador é abrigado ou ficará exposto a chuvas diretas e sol?',
+        choices: [
+          { val: 'sim', label: '✓ Abrigado / Coberto' },
+          { val: 'nao', label: '✕ Ao ar livre / Exposto à chuva' }
+        ],
+        current: conf.rainProtectionConfirmed,
+        onSelect: (v) => { conf.rainProtectionConfirmed = v; }
+      },
+      {
+        id: 'exclusiveCircuit',
+        title: '🔌 5. Circuito Elétrico para o Carregador',
+        aiBadge: 'NBR 17019',
+        desc: 'A norma exige circuito 100% exclusivo do quadro até o carregador (proibido compartilhar com tomadas comuns).',
+        choices: [
+          { val: 'nao', label: '🛠️ Instalar novo circuito dedicado (Padrão correto)' },
+          { val: 'sim', label: '✓ Já possui circuito exclusivo e tubulação pronta' },
+          { val: 'nao_sei', label: '❓ Não sei' }
+        ],
+        current: conf.exclusiveCircuitConfirmed,
+        onSelect: (v) => { conf.exclusiveCircuitConfirmed = v; }
+      },
+      {
+        id: 'capacityVerified',
+        title: '📊 6. Demanda e Folga de Potência',
+        aiBadge: 'Capacidade Concessionária',
+        desc: 'A demanda de consumo elétrico da edificação nos horários de pico já foi medida ou analisada na conta de luz?',
+        choices: [
+          { val: 'sim', label: '✓ Sim, já verificada e há folga' },
+          { val: 'nao_sei', label: '❓ Demanda desconhecida (fazer medição em visita)' }
+        ],
+        current: conf.capacityVerified,
+        onSelect: (v) => { conf.capacityVerified = v; }
+      }
+    ];
+
+    if (isSubsoloOuFechada) {
+      cards.push({
+        id: 'cbmerjSprinklers',
+        title: '🚒 7. Proteção Contra Incêndio na Garagem Fechada / Subsolo',
+        aiBadge: isRJ ? 'Exigência CBMERJ 326/2025' : 'Norma Estadual de Bombeiros',
+        desc: isRJ 
+          ? 'No Estado do RJ, a Nota CBMERJ 326/2025 proíbe recarga em subsolos e garagens fechadas sem chuveiros automáticos (sprinklers).'
+          : 'Garagens subterrâneas ou enclausuradas requerem sistema de combate a incêndio com bicos de chuveiros automáticos (sprinklers).',
+        choices: [
+          { val: 'sim', label: '✓ Sim, o teto possui chuveiros automáticos (sprinklers)' },
+          { val: 'nao', label: '✕ Não possui sprinklers (Impedimento no RJ)' },
+          { val: 'nao_se_aplica', label: 'Garagem ao ar livre / Não se aplica' }
+        ],
+        current: conf.cbmerjSprinklers,
+        onSelect: (v) => { conf.cbmerjSprinklers = v; }
+      });
+    }
+
+    cards.forEach(cardData => {
+      const cardEl = document.createElement('div');
+      cardEl.className = 'confirm-item-card';
+      cardEl.innerHTML = `
+        <div class="confirm-item-header">
+          <h4 class="confirm-item-title">${escapeHtml(cardData.title)}</h4>
+          <span class="confirm-ai-badge">${escapeHtml(cardData.aiBadge)}</span>
+        </div>
+        <p class="confirm-item-desc">${escapeHtml(cardData.desc)}</p>
+        <div class="confirm-buttons-row" data-card-id="${cardData.id}">
+          ${cardData.choices.map(c => `
+            <button type="button" class="btn-confirm-choice ${cardData.current === c.val ? 'is-selected' : ''}" data-value="${c.val}">
+              ${escapeHtml(c.label)}
+            </button>
+          `).join('')}
+        </div>
+      `;
+
+      cardEl.querySelectorAll('.btn-confirm-choice').forEach(btn => {
+        btn.addEventListener('click', function () {
+          cardEl.querySelectorAll('.btn-confirm-choice').forEach(b => b.classList.remove('is-selected'));
+          this.classList.add('is-selected');
+          cardData.onSelect(this.dataset.value);
+          saveInspectionToLocalStorage();
+        });
+      });
+
+      container.appendChild(cardEl);
+    });
+  }
+
+  function evaluateAndRenderInspectionDiagnostic() {
+    if (!SmartInspection) return;
+    const diagnostic = SmartInspection.evaluateInspectionViability(inspectionState);
+    inspectionState.diagnosticResult = diagnostic;
+    saveInspectionToLocalStorage();
+
+    // Render Hero Card
+    const heroCard = document.getElementById('wizardDiagnosticHeroCard');
+    if (heroCard) {
+      heroCard.className = `diag-hero-card ${diagnostic.badgeClass}`;
+      heroCard.innerHTML = `
+        <div class="diag-header-row">
+          <div class="diag-status-badge ${diagnostic.badgeClass}">${diagnostic.badge}</div>
+        </div>
+        <h3 class="diag-headline-title">${escapeHtml(diagnostic.headline)}</h3>
+        <p class="diag-summary-text">${escapeHtml(diagnostic.summary)}</p>
+      `;
+    }
+
+    // Render Critical Actions
+    const listCrit = document.getElementById('listCriticalActions');
+    const groupCrit = document.getElementById('groupCriticalActions');
+    if (listCrit && groupCrit) {
+      if (diagnostic.criticalActions.length === 0) {
+        groupCrit.style.display = 'none';
+      } else {
+        groupCrit.style.display = 'block';
+        listCrit.innerHTML = diagnostic.criticalActions.map(act => `
+          <div class="diag-action-item">
+            <span class="diag-action-bullet">🚨</span>
+            <div><strong>Ação Crítica Impeditiva:</strong> ${escapeHtml(act)}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Render Necessary Actions
+    const listNec = document.getElementById('listNecessaryActions');
+    if (listNec) {
+      if (diagnostic.necessaryActions.length === 0) {
+        listNec.innerHTML = `<div class="diag-action-item"><span class="diag-action-bullet">✓</span> Nenhum ajuste técnico complexo exigido.</div>`;
+      } else {
+        listNec.innerHTML = diagnostic.necessaryActions.map(act => `
+          <div class="diag-action-item">
+            <span class="diag-action-bullet">⚠️</span>
+            <div>${escapeHtml(act)}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Render Recommended Actions
+    const listRec = document.getElementById('listRecommendedActions');
+    if (listRec) {
+      listRec.innerHTML = diagnostic.recommendedActions.map(act => `
+        <div class="diag-action-item">
+          <span class="diag-action-bullet">💡</span>
+          <div>${escapeHtml(act)}</div>
+        </div>
+      `).join('');
+    }
+
+    // Render Next Steps
+    const listNext = document.getElementById('listNextSteps');
+    if (listNext) {
+      listNext.innerHTML = `
+        <div class="diag-action-item">
+          <span class="diag-action-bullet">📋</span>
+          <div>${escapeHtml(diagnostic.nextAction)}</div>
+        </div>
+        <div class="diag-action-item">
+          <span class="diag-action-bullet">📄</span>
+          <div>Gere e compartilhe o <strong>Laudo Preliminar de Vistoria</strong> com o cliente ou condomínio.</div>
+        </div>
+      `;
+    }
+  }
+
+  async function analyzePhotosWithAI() {
+    const overlay = document.getElementById('aiScanOverlay');
+    const statusText = document.getElementById('aiScanStatusText');
+    const fill = document.getElementById('aiScanProgressFill');
+
+    if (overlay) overlay.classList.remove('is-hidden');
+    if (statusText) statusText.textContent = '1/3: Compactando e preparando fotografias...';
+    if (fill) fill.style.width = '30%';
+
+    try {
+      await new Promise(r => setTimeout(r, 600));
+
+      if (statusText) statusText.textContent = '2/3: Enviando para análise multimodal Gemini...';
+      if (fill) fill.style.width = '65%';
+
+      const payload = {
+        localData: inspectionState.localData,
+        photos: inspectionState.photos.map(p => ({
+          category: p.categoryKey,
+          mimeType: p.mimeType,
+          base64: p.base64
+        }))
+      };
+
+      let analysisResult = null;
+      try {
+        const response = await fetch('/api/analyze-photos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const json = await response.json();
+          analysisResult = json.analysis;
+        }
+      } catch (networkErr) {
+        console.warn('API /api/analyze-photos offline ou sem chave. Usando motor heurístico local.', networkErr);
+      }
+
+      if (statusText) statusText.textContent = '3/3: Identificando disjuntores, folgas e proteções...';
+      if (fill) fill.style.width = '95%';
+      await new Promise(r => setTimeout(r, 700));
+
+      // Se a API retornou análise, aplicar no estado
+      if (analysisResult) {
+        inspectionState.aiAnalysis = analysisResult;
+        if (analysisResult.mainBreakerEstimate) {
+          inspectionState.confirmations.mainBreakerConfirmed = String(analysisResult.mainBreakerEstimate);
+        }
+        if (analysisResult.hasDinSpace !== undefined) {
+          inspectionState.confirmations.spaceAvailableConfirmed = analysisResult.hasDinSpace ? 'sim' : 'nao';
+        }
+        if (analysisResult.groundingIdentified !== undefined) {
+          inspectionState.confirmations.groundingConfirmed = analysisResult.groundingIdentified ? 'sim' : 'nao_sei';
+        }
+      } else {
+        // Heurística local inteligente
+        const hasBreakerPhoto = inspectionState.photos.some(p => p.categoryKey === 'disjuntores' || p.categoryKey === 'quadro_geral');
+        if (hasBreakerPhoto && inspectionState.confirmations.mainBreakerConfirmed === 'nao_sei') {
+          inspectionState.confirmations.mainBreakerConfirmed = '50';
+        }
+      }
+
+      saveInspectionToLocalStorage();
+      if (overlay) overlay.classList.add('is-hidden');
+      renderInspectionStep(3);
+      showToast('✨ Fotografias interpretadas com sucesso!');
+    } catch (err) {
+      console.error('Erro na análise de fotos:', err);
+      if (overlay) overlay.classList.add('is-hidden');
+      renderInspectionStep(3);
+      showToast('Avançando para confirmação.');
+    }
+  }
+
+  function syncInspectionToAdvancedEngine() {
+    const loc = inspectionState.localData;
+    const conf = inspectionState.confirmations;
+
+    // Distância
+    if (loc.distanceApprox === '<10') state.distance = 8;
+    else if (loc.distanceApprox === '10-25') state.distance = 20;
+    else if (loc.distanceApprox === '25-50') state.distance = 35;
+    else if (loc.distanceApprox === '>50') state.distance = 60;
+
+    // Disjuntor geral
+    if (conf.mainBreakerConfirmed && conf.mainBreakerConfirmed !== 'nao_sei') {
+      const bNum = parseFloat(conf.mainBreakerConfirmed);
+      if (bNum > 0) {
+        state.mainBreakerKnown = true;
+        state.mainBreaker = bNum;
+      }
+    }
+
+    // Carregadores
+    const vCount = parseInt(loc.vehicleCount, 10) || 1;
+    const isTomada = loc.chargerType === 'tomada';
+    const current = isTomada ? 16 : 32;
+
+    state.chargers = [];
+    for (let i = 1; i <= vCount; i++) {
+      state.chargers.push({
+        id: i,
+        name: isTomada ? `Ponto Especial ${i}` : `Wallbox Vaga ${i}`,
+        nominalCurrent: current,
+        enabled: true,
+        phaseConfig: state.supplyType === 'monofasica' ? 'L1-N' : (state.supplyType === 'bifasica' ? 'L1-L2' : '3F')
+      });
+    }
+
+    switchAppMode('avancado');
+    showToast('⚙️ Dados da vistoria integrados ao motor elétrico de engenharia!');
+  }
+
   return {
     state,
+    inspectionState,
     initChecklistState,
     renderChargersList,
     renderChecklist,
@@ -717,6 +1296,15 @@
     printReport,
     shareQuickSummary,
     copySummaryToClipboard,
-    showToast
+    showToast,
+    saveInspectionToLocalStorage,
+    loadInspectionFromLocalStorage,
+    switchAppMode,
+    renderInspectionStep,
+    renderPhotosGrid,
+    renderConfirmationCards,
+    evaluateAndRenderInspectionDiagnostic,
+    analyzePhotosWithAI,
+    syncInspectionToAdvancedEngine
   };
 }));

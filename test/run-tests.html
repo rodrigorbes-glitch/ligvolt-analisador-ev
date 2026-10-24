@@ -70,6 +70,7 @@
   <script src="../js/compliance-rules.js"></script>
   <script src="../js/diagnostic-engine.js"></script>
   <script src="../js/dossier-generator.js"></script>
+  <script src="../js/smart-inspection.js"></script>
 
   <script>
     document.getElementById('btnRun').addEventListener('click', function () {
@@ -191,6 +192,79 @@
 
       const pedConc = Dossier.buildConcessionaireRequest(res2, { concessionaria: 'Light S.A.' });
       assert(pedConc.includes('MEMORIAL DESCRITIVO PARA PEDIDO DE AUMENTO DE CARGA'), 'Pedido de aumento de carga para concessionária gerado');
+
+      // TESTES DE VISTORIA INTELIGENTE COM IA
+      log(`\n=============================================================`);
+      log(`🤖 TESTES DE VISTORIA INTELIGENTE COM IA & CASOS DE BORDA`);
+      log(`=============================================================`);
+
+      const SmartInspection = window.LigvoltSmartInspection;
+
+      // CASO 1
+      const inspCase1 = {
+        localData: { locationType: 'residencia', installArea: 'garagem_aberta', vehicleCount: 1, chargerType: 'wallbox', distanceApprox: '10-25', cityState: 'Curitiba - PR' },
+        confirmations: { mainBreakerConfirmed: '50', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+        photos: []
+      };
+      const diagCase1 = SmartInspection.evaluateInspectionViability(inspCase1);
+      assert(diagCase1.state === 'APTO_COM_ADEQUACOES', 'Caso 1: Classificação APTO COM ADEQUAÇÕES');
+      assert(diagCase1.necessaryActions.some(a => a.includes('exclusivo')), 'Caso 1: Exige criação de circuito exclusivo');
+      assert(diagCase1.necessaryActions.some(a => a.includes('medição')), 'Caso 1: Exige medição de corrente de pico');
+
+      // CASO 2
+      const inspCase2 = {
+        localData: { locationType: 'condominio', installArea: 'garagem_aberta', vehicleCount: 1, chargerType: 'wallbox', distanceApprox: '25-50', cityState: 'São Paulo - SP' },
+        confirmations: { mainBreakerConfirmed: '63', groundingConfirmed: 'nao_sei', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'nao', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+        photos: []
+      };
+      const diagCase2 = SmartInspection.evaluateInspectionViability(inspCase2);
+      assert(diagCase2.necessaryActions.some(a => a.includes('subquadro') || a.includes('quadro')), 'Caso 2: Exige subquadro elétrico auxiliar');
+
+      // CASO 3
+      const inspCase3 = {
+        localData: { locationType: 'residencia', installArea: 'garagem_aberta', vehicleCount: 1, chargerType: 'wallbox', distanceApprox: '<10', cityState: 'Belo Horizonte - MG' },
+        confirmations: { mainBreakerConfirmed: 'nao_sei', groundingConfirmed: 'nao_sei', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'nao_sei', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+        photos: []
+      };
+      const diagCase3 = SmartInspection.evaluateInspectionViability(inspCase3);
+      assert(diagCase3.state === 'NECESSITA_VERIFICACAO', 'Caso 3: Sem disjuntor resulta em NECESSITA VERIFICAÇÃO TÉCNICA');
+
+      // CASO 4
+      const inspCase4 = {
+        localData: { locationType: 'residencia', installArea: 'garagem_aberta', vehicleCount: 1, chargerType: 'wallbox', distanceApprox: '<10', cityState: 'Rio de Janeiro - RJ' },
+        confirmations: { mainBreakerConfirmed: '50', groundingConfirmed: 'nao', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+        photos: []
+      };
+      const diagCase4 = SmartInspection.evaluateInspectionViability(inspCase4);
+      assert(diagCase4.criticalActions.some(a => a.includes('aterramento')), 'Caso 4: Ação crítica de aterramento TN-S');
+
+      // CASO 5
+      const inspCase5 = {
+        localData: { locationType: 'condominio', installArea: 'subsolo', vehicleCount: 2, chargerType: 'wallbox', distanceApprox: '25-50', cityState: 'Rio de Janeiro - RJ' },
+        confirmations: { mainBreakerConfirmed: '100', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'sim', cbmerjSprinklers: 'nao' },
+        photos: []
+      };
+      const diagCase5 = SmartInspection.evaluateInspectionViability(inspCase5);
+      assert(diagCase5.state === 'NAO_APTO', 'Caso 5: Subsolo sem sprinklers no RJ resulta em NÃO APTO');
+
+      // CASO 6
+      const inspCase6 = {
+        localData: { locationType: 'residencia', installArea: 'garagem_aberta', vehicleCount: 2, chargerType: 'wallbox', distanceApprox: '<10', cityState: 'Campinas - SP' },
+        confirmations: { mainBreakerConfirmed: '40', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'nao', capacityVerified: 'nao_sei', cbmerjSprinklers: 'nao_se_aplica' },
+        photos: []
+      };
+      const diagCase6 = SmartInspection.evaluateInspectionViability(inspCase6);
+      assert(diagCase6.state === 'NAO_APTO', 'Caso 6: Sobrecarga crítica resulta em NÃO APTO');
+
+      // CASO 7 & 8
+      const reportHtml = SmartInspection.buildPreliminaryInspectionReportHTML({
+        localData: inspCase1.localData,
+        confirmations: inspCase1.confirmations,
+        photos: [{ id: '1', categoryName: 'Foto Geral', dataUrl: 'data:image/jpeg;base64,123', timestamp: '24/10/2026' }],
+        clientMeta: { clientName: 'João da Silva' }
+      }, diagCase1);
+      assert(reportHtml.includes('RELATÓRIO PRELIMINAR DE VISTORIA E VIABILIDADE'), 'Caso 8: Título do laudo preliminar gerado');
+      assert(reportHtml.includes('Natureza Preliminar Deste Relatório'), 'Caso 8: Aviso legal obrigatório presente');
 
       log(`\n====================================================`);
       log(`🏁 RESULTADO FINAL: ${passed} PASSARAM | ${failed} FALHARAM`, failed === 0 ? 'pass' : 'fail');

@@ -498,7 +498,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 12. Modal de Dossiê, Laudo e Relatório
   const btnExportHeader = document.getElementById('btnExportHeader');
-  if (btnExportHeader) btnExportHeader.addEventListener('click', () => UI.openReportModal('relatorio'));
+  if (btnExportHeader) {
+    btnExportHeader.addEventListener('click', () => {
+      // Se estiver na vistoria, abre o laudo de vistoria; se no avançado, abre o relatório de engenharia
+      const isVistoria = document.getElementById('mode-vistoria') && !document.getElementById('mode-vistoria').classList.contains('is-hidden');
+      UI.openReportModal(isVistoria ? 'vistoria_preliminar' : 'relatorio');
+    });
+  }
 
   const btnExportBottom = document.getElementById('btnExportBottom');
   if (btnExportBottom) btnExportBottom.addEventListener('click', () => UI.openReportModal('relatorio'));
@@ -560,10 +566,156 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   const btnResetHeader = document.getElementById('btnResetHeader');
-  if (btnResetHeader) btnResetHeader.addEventListener('click', resetAllForm);
+  if (btnResetHeader) {
+    btnResetHeader.addEventListener('click', function () {
+      const isVistoria = document.getElementById('mode-vistoria') && !document.getElementById('mode-vistoria').classList.contains('is-hidden');
+      if (isVistoria) {
+        resetInspectionForm();
+      } else {
+        resetAllForm();
+      }
+    });
+  }
 
   const btnResetBottom = document.getElementById('btnResetBottom');
   if (btnResetBottom) btnResetBottom.addEventListener('click', resetAllForm);
+
+  // =========================================================================
+  // VINCULAÇÃO DE EVENTOS: VISTORIA PRELIMINAR INTELIGENTE (WIZARD & IA)
+  // =========================================================================
+
+  // 1. Alternador de Modo (Vistoria Guiada vs Modo Avançado)
+  const btnModeVistoria = document.getElementById('btnModeVistoria');
+  if (btnModeVistoria) {
+    btnModeVistoria.addEventListener('click', () => UI.switchAppMode('vistoria'));
+  }
+
+  const btnModeAvancado = document.getElementById('btnModeAvancado');
+  if (btnModeAvancado) {
+    btnModeAvancado.addEventListener('click', () => UI.switchAppMode('avancado'));
+  }
+
+  const btnReturnToVistoria = document.getElementById('btnReturnToVistoria');
+  if (btnReturnToVistoria) {
+    btnReturnToVistoria.addEventListener('click', () => UI.switchAppMode('vistoria'));
+  }
+
+  const btnOpenInAdvancedMode = document.getElementById('btnOpenInAdvancedMode');
+  if (btnOpenInAdvancedMode) {
+    btnOpenInAdvancedMode.addEventListener('click', () => UI.syncInspectionToAdvancedEngine());
+  }
+
+  // 2. Navegação do Wizard (Etapas 1, 2, 3, 4)
+  function readStep1Data() {
+    const loc = UI.inspectionState.localData;
+    const getRadioVal = name => {
+      const el = document.querySelector(`input[name="${name}"]:checked`);
+      return el ? el.value : '';
+    };
+
+    loc.locationType = getRadioVal('inspLocationType') || 'residencia';
+    loc.installArea = getRadioVal('inspInstallArea') || 'garagem_aberta';
+    loc.vehicleCount = parseInt(getRadioVal('inspVehicleCount') || '1', 10);
+    loc.chargerType = getRadioVal('inspChargerType') || 'wallbox';
+    loc.distanceApprox = getRadioVal('inspDistanceApprox') || '10-25';
+
+    const cityInput = document.getElementById('inspCityStateInput');
+    if (cityInput && cityInput.value.trim()) {
+      loc.cityState = cityInput.value.trim();
+    }
+    UI.saveInspectionToLocalStorage();
+  }
+
+  function syncStep1InputsFromState() {
+    const loc = UI.inspectionState.localData;
+    const setRadio = (name, val) => {
+      const el = document.querySelector(`input[name="${name}"][value="${val}"]`);
+      if (el) el.checked = true;
+    };
+
+    if (loc.locationType) setRadio('inspLocationType', loc.locationType);
+    if (loc.installArea) setRadio('inspInstallArea', loc.installArea);
+    if (loc.vehicleCount) setRadio('inspVehicleCount', loc.vehicleCount);
+    if (loc.chargerType) setRadio('inspChargerType', loc.chargerType);
+    if (loc.distanceApprox) setRadio('inspDistanceApprox', loc.distanceApprox);
+
+    const cityInput = document.getElementById('inspCityStateInput');
+    if (cityInput && loc.cityState) {
+      cityInput.value = loc.cityState;
+    }
+  }
+
+  const btnNextStep1 = document.getElementById('btnNextStep1');
+  if (btnNextStep1) {
+    btnNextStep1.addEventListener('click', function () {
+      readStep1Data();
+      UI.renderInspectionStep(2);
+    });
+  }
+
+  const btnBackStep2 = document.getElementById('btnBackStep2');
+  if (btnBackStep2) {
+    btnBackStep2.addEventListener('click', () => UI.renderInspectionStep(1));
+  }
+
+  const btnSkipPhotos = document.getElementById('btnSkipPhotos');
+  if (btnSkipPhotos) {
+    btnSkipPhotos.addEventListener('click', () => UI.renderInspectionStep(3));
+  }
+
+  const btnAnalyzeAI = document.getElementById('btnAnalyzeAI');
+  if (btnAnalyzeAI) {
+    btnAnalyzeAI.addEventListener('click', () => UI.analyzePhotosWithAI());
+  }
+
+  const btnBackStep3 = document.getElementById('btnBackStep3');
+  if (btnBackStep3) {
+    btnBackStep3.addEventListener('click', () => UI.renderInspectionStep(2));
+  }
+
+  const btnEvaluateFinal = document.getElementById('btnEvaluateFinal');
+  if (btnEvaluateFinal) {
+    btnEvaluateFinal.addEventListener('click', () => UI.renderInspectionStep(4));
+  }
+
+  const btnGenerateInspectionPDF = document.getElementById('btnGenerateInspectionPDF');
+  if (btnGenerateInspectionPDF) {
+    btnGenerateInspectionPDF.addEventListener('click', () => UI.openReportModal('vistoria_preliminar'));
+  }
+
+  function resetInspectionForm() {
+    UI.inspectionState.photos = [];
+    UI.inspectionState.aiAnalysis = null;
+    UI.inspectionState.diagnosticResult = null;
+    UI.inspectionState.confirmations = {
+      mainBreakerConfirmed: '50',
+      groundingConfirmed: 'nao_sei',
+      rainProtectionConfirmed: 'sim',
+      spaceAvailableConfirmed: 'nao_sei',
+      exclusiveCircuitConfirmed: 'nao',
+      capacityVerified: 'nao_sei',
+      cbmerjSprinklers: 'nao_se_aplica'
+    };
+    UI.saveInspectionToLocalStorage();
+    UI.renderInspectionStep(1);
+    UI.showToast('↺ Vistoria reiniciada com sucesso.');
+  }
+
+  const btnRestartInspection = document.getElementById('btnRestartInspection');
+  if (btnRestartInspection) {
+    btnRestartInspection.addEventListener('click', resetInspectionForm);
+  }
+
+  // Stepper Header Direct Click Navigation
+  for (let s = 1; s <= 4; s++) {
+    const node = document.getElementById(`stepNode${s}`);
+    if (node) {
+      node.addEventListener('click', function () {
+        if (s > 1) readStep1Data();
+        UI.renderInspectionStep(s);
+      });
+    }
+  }
 
   // Fechar modal ao clicar fora ou com Escape
   const reportModal = document.getElementById('reportModal');
@@ -580,10 +732,16 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // 13. Inicialização Completa
+  UI.loadInspectionFromLocalStorage();
+  syncStep1InputsFromState();
   syncFormInputsWithState();
   UI.renderChargersList();
   UI.renderChecklist();
   UI.recalculateAndRender();
 
-  console.log('⚡ LIGVOLT Light Mode SaaS inicializado com sucesso.');
+  // Inicia por padrão no Modo Vistoria Guiada
+  UI.switchAppMode('vistoria');
+  UI.renderInspectionStep(UI.inspectionState.currentStep || 1);
+
+  console.log('⚡ LIGVOLT Light Mode SaaS & Vistoria Inteligente inicializados com sucesso.');
 });
