@@ -1728,9 +1728,9 @@
       if (value === '<10') d = 8;
       else if (value === '10-25') d = 20;
       else if (value === '25-50') d = 35;
-      else if (value === '>50') d = 60;
+      else if (value === '>50') d = parseFloat(loc.customDistance) || 60;
       state.distance = d;
-      state.distanceStatus = 'sugerido';
+      state.distanceStatus = value === '>50' ? 'confirmado' : 'sugerido';
       const distInput = document.getElementById('inputDistance');
       if (distInput) distInput.value = d;
     }
@@ -1765,9 +1765,18 @@
       else if (d <= 50) approx = '25-50';
       else approx = '>50';
       loc.distanceApprox = approx;
+      const dBox = document.getElementById('inspCustomDistanceBox');
+      const dInput = document.getElementById('inspInputCustomDistance');
       document.querySelectorAll('input[name="inspDistanceApprox"]').forEach(r => {
         r.checked = (r.value === approx);
       });
+      if (approx === '>50') {
+        loc.customDistance = d;
+        if (dBox) dBox.style.display = 'block';
+        if (dInput) dInput.value = d;
+      } else {
+        if (dBox) dBox.style.display = 'none';
+      }
     } else if (field === 'mainBreaker') {
       const b = parseFloat(value);
       if (b > 0) {
@@ -1777,11 +1786,20 @@
       }
     } else if (field === 'chargers') {
       const count = state.chargers.length;
-      if (count >= 1 && count <= 4) {
-        loc.vehicleCount = String(count);
+      loc.vehicleCount = count;
+      const vBox = document.getElementById('inspCustomVehicleBox');
+      const vInput = document.getElementById('inspInputCustomVehicle');
+      if (count > 3) {
+        document.querySelectorAll('input[name="inspVehicleCount"]').forEach(r => {
+          r.checked = (r.value === 'mais_de_3');
+        });
+        if (vBox) vBox.style.display = 'block';
+        if (vInput) vInput.value = count;
+      } else {
         document.querySelectorAll('input[name="inspVehicleCount"]').forEach(r => {
           r.checked = (r.value === String(count));
         });
+        if (vBox) vBox.style.display = 'none';
       }
     }
 
@@ -1827,7 +1845,10 @@
     if (loc.distanceApprox === '<10') state.distance = 8;
     else if (loc.distanceApprox === '10-25') state.distance = 20;
     else if (loc.distanceApprox === '25-50') state.distance = 35;
-    else if (loc.distanceApprox === '>50') state.distance = 60;
+    else if (loc.distanceApprox === '>50') state.distance = parseFloat(loc.customDistance) || 60;
+    state.distanceStatus = loc.distanceApprox === '>50' ? 'confirmado' : 'sugerido';
+    const distInput = document.getElementById('inputDistance');
+    if (distInput) distInput.value = state.distance;
     state.distanceStatus = 'sugerido';
     const distInput = document.getElementById('inputDistance');
     if (distInput) distInput.value = state.distance;

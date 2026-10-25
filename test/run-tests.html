@@ -265,6 +265,8 @@
       }, diagCase1);
       assert(reportHtml.includes('RELATÓRIO PRELIMINAR DE VISTORIA E VIABILIDADE'), 'Caso 8: Título do laudo preliminar gerado');
       assert(reportHtml.includes('Alimentação Elétrica:'), 'Caso 8: Seção de alimentação elétrica presente no laudo');
+      assert(reportHtml.includes('Metodologia e Diagnóstico de Visão Computacional por Inteligência Artificial (IA)'), 'Caso 8: Seção detalhada de IA presente no laudo');
+      assert(reportHtml.includes('Google Gemini Multimodal Vision API'), 'Caso 8: Especificação do modelo Google Gemini presente');
       assert(reportHtml.includes('Natureza Preliminar Deste Relatório'), 'Caso 8: Aviso legal obrigatório presente');
 
       // CASO 9: Vistoria com Alimentação e Tensão Desconhecidas
@@ -293,6 +295,15 @@
       assert(resBifasica.phaseSummary.phases.A.evProject === 40, 'Caso 10: Fase A recebe 40A do carregador L1-L2');
       assert(resBifasica.phaseSummary.phases.B.evProject === 40, 'Caso 10: Fase B recebe 40A do carregador L1-L2');
       assert(resBifasica.phaseSummary.maxPhaseProject === 55, 'Caso 10: Corrente máxima 55A sem soma escalar incorreta');
+
+      // CASO 11: Mais de 3 Veículos e Distância Longa (>50m)
+      const inspCase11 = {
+        localData: { locationType: 'condominio', installArea: 'garagem_aberta', supplyType: 'trifasica', voltagePreset: '220_380', vehicleCount: 5, chargerType: 'wallbox', distanceApprox: '>50', customDistance: 75 },
+        confirmations: { mainBreakerConfirmed: '200', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'sim', capacityVerified: 'sim', cbmerjSprinklers: 'nao_se_aplica' },
+        photos: []
+      };
+      const diagCase11 = SmartInspection.evaluateInspectionViability(inspCase11);
+      assert(diagCase11.state === 'PRELIMINARMENTE_APTO' || diagCase11.state === 'APTO_COM_ADEQUACOES', 'Caso 11: 5 veículos avaliados com sucesso');
 
       log(`\n====================================================`);
       log(`🏁 RESULTADO FINAL: ${passed} PASSARAM | ${failed} FALHARAM`, failed === 0 ? 'pass' : 'fail');

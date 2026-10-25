@@ -537,7 +537,60 @@
         </table>
       </div>
 
-      <!-- 7. EVIDÊNCIAS FOTOGRÁFICAS -->
+      <!-- 7. METODOLOGIA E DETALHES DA INTELIGÊNCIA ARTIFICIAL (IA) -->
+      <div class="report-section">
+        <h3 class="section-title">7. Metodologia e Diagnóstico de Visão Computacional por Inteligência Artificial (IA)</h3>
+        
+        <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="font-size: 13px; color: #0F172A;">Motor de IA: Google Gemini Multimodal Vision API (gemini-2.5-flash / gemini-1.5-flash)</strong>
+            <span style="background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700;">
+              ${aiAnalysis ? '✨ Análise Multimodal Processada' : '⚙️ Triagem Assistida por Heurística Local'}
+            </span>
+          </div>
+          <p style="font-size: 12px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">
+            O sistema Ligvolt integra visão computacional de alta fidelidade calibrada para triagem preventiva de conformidade elétrica conforme a <strong>ABNT NBR 5410</strong>, <strong>NBR 17019</strong> e a <strong>Nota CHEMG 326/2025 do CBMERJ</strong>.
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 11.5px; color: #334155;">
+            <div><strong>• Reconhecimento Óptico (OCR):</strong> Leitura de correntes nominais (ex: C32, C40, C50, C63, C100) e curvas de disparo dos disjuntores gerais.</div>
+            <div><strong>• Análise Espacial DIN:</strong> Verificação de módulos livres para inclusão de proteção DR Tipo A e DPS Classe II.</div>
+            <div><strong>• Termografia & Degradação:</strong> Identificação de indícios visuais de aquecimento, oxidação ou bornes escurecidos.</div>
+            <div><strong>• Segurança Estrutural:</strong> Verificação de rotas para cabos e conformidade do ambiente da vaga (intempéries / subsolo).</div>
+          </div>
+        </div>
+
+        ${aiAnalysis ? `
+          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 6px; padding: 12px 14px;">
+            <h4 style="font-size: 12px; font-weight: 700; color: #1E293B; margin-top: 0; margin-bottom: 6px;">
+              🔍 Resultados Específicos Extraídos das Fotos pela IA:
+            </h4>
+            <p style="font-size: 12px; color: #1E293B; background: #F1F5F9; padding: 8px 12px; border-radius: 4px; margin-bottom: 8px;">
+              <strong>Parecer da IA:</strong> ${escapeHtml(aiAnalysis.summary || 'Análise visual concluída sem anomalias críticas registradas.')}
+            </p>
+            ${Array.isArray(aiAnalysis.identifiedBreakers) && aiAnalysis.identifiedBreakers.length > 0 ? `
+              <div style="font-size: 11.5px; margin-top: 6px;">
+                <strong>Disjuntores Identificados na Imagem:</strong>
+                <ul style="margin: 4px 0; padding-left: 18px; color: #475569;">
+                  ${aiAnalysis.identifiedBreakers.map(b => `
+                    <li><strong>${escapeHtml(b.label || 'Disjuntor')}:</strong> ${b.rating ? `${b.rating}A` : 'Amperagem não legível'} - ${escapeHtml(b.notes || 'Identificado no quadro')} (Confiança: ${escapeHtml(b.confidence || 'Média')})</li>
+                  `).join('')}
+                </ul>
+              </div>
+            ` : ''}
+            <div style="display: flex; gap: 16px; margin-top: 8px; font-size: 11.5px; color: #475569;">
+              <span>Espaço DIN no quadro: <strong>${aiAnalysis.hasDinSpace ? '✓ Identificado' : '✕ Limitado / Sem reserva'}</strong></span>
+              <span>Barramento de Aterramento: <strong>${aiAnalysis.groundingIdentified ? '✓ Identificado' : '❓ Não visível'}</strong></span>
+              <span>Risco Térmico Aparente: <strong>${aiAnalysis.thermalRiskDetected ? '⚠️ Detectado' : '✓ Não observado'}</strong></span>
+            </div>
+          </div>
+        ` : `
+          <div style="background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 6px; padding: 10px 14px; font-size: 11.5px; color: #64748B;">
+            ℹ️ <strong>Status do Processamento de Imagens:</strong> As fotos da vistoria foram registradas e arquivadas. Para ativação do processamento multimodal em tempo real na nuvem com OCR de disjuntores, configure a variável de ambiente <code>GEMINI_API_KEY</code> na Vercel. O diagnóstico técnico atual operou com o motor pericial de heurística estrita Ligvolt.
+          </div>
+        `}
+      </div>
+
+      <!-- 8. EVIDÊNCIAS FOTOGRÁFICAS -->
       ${photosGalleryHtml}
 
       <!-- AVISO LEGAL E DIRETRIZES TÉCNICAS -->

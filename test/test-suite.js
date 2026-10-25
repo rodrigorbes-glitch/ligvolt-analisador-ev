@@ -308,6 +308,8 @@ function runAllTests() {
   assert(reportHtml.includes('Evidências Fotográficas da Vistoria'), 'Seção de evidências fotográficas presente');
   assert(reportHtml.includes('João da Silva'), 'Nome do cliente presente');
   assert(reportHtml.includes('Alimentação Elétrica:'), 'Seção de alimentação elétrica presente no laudo');
+  assert(reportHtml.includes('Metodologia e Diagnóstico de Visão Computacional por Inteligência Artificial (IA)'), 'Seção detalhada de IA presente no relatório');
+  assert(reportHtml.includes('Google Gemini Multimodal Vision API'), 'Especificação do modelo de IA Google Gemini presente no laudo');
   assert(reportHtml.includes('Natureza Preliminar Deste Relatório'), 'Aviso legal obrigatório presente');
 
   // CASO 9: Vistoria com Alimentação Desconhecida ("Não sei")
@@ -367,6 +369,42 @@ function runAllTests() {
   assert(pSummary.phases.B.evProject === 40, 'Fase B recebe 40A do carregador L1-L2');
   assert(pSummary.phases.C.evProject === 0, 'Fase C não recebe carga em alimentação bifásica');
   assert(pSummary.maxPhaseProject === 55, `Corrente máxima da maior fase calculada sem soma escalar incorreta: ${pSummary.maxPhaseProject}A (15A existente + 40A EV)`);
+
+  // CASO 11: Vistoria e Cálculo com Mais de 3 Veículos e Distância Longa (>50m)
+  console.log('\n--- CASO 11: Mais de 3 Veículos (5 vagas) com Distância Longa (75 metros) ---');
+  const inspCase11 = {
+    localData: {
+      locationType: 'condominio',
+      installArea: 'garagem_aberta',
+      supplyType: 'trifasica',
+      voltagePreset: '220_380',
+      vehicleCount: 5,
+      chargerType: 'wallbox',
+      distanceApprox: '>50',
+      customDistance: 75
+    },
+    confirmations: {
+      mainBreakerConfirmed: '200',
+      groundingConfirmed: 'sim',
+      rainProtectionConfirmed: 'sim',
+      spaceAvailableConfirmed: 'sim',
+      exclusiveCircuitConfirmed: 'sim',
+      capacityVerified: 'sim',
+      cbmerjSprinklers: 'nao_se_aplica'
+    },
+    photos: []
+  };
+  const diagCase11 = SmartInspection.evaluateInspectionViability(inspCase11);
+  assert(diagCase11.state === 'PRELIMINARMENTE_APTO' || diagCase11.state === 'APTO_COM_ADEQUACOES', '5 veículos com disjuntor 200A avaliado com sucesso');
+
+  const report11Html = SmartInspection.buildPreliminaryInspectionReportHTML({
+    localData: inspCase11.localData,
+    confirmations: inspCase11.confirmations,
+    photos: [],
+    clientMeta: { clientName: 'Condomínio Solar' }
+  }, diagCase11);
+  assert(report11Html.includes('Qtd. Veículos: <strong>5</strong>'), 'Laudo reflete quantidade customizada de 5 veículos');
+  assert(report11Html.includes('Distância estimada: <strong>>50</strong>'), 'Laudo reflete distância longa');
 
   // RESUMO DOS TESTES
   console.log('\n====================================================');

@@ -638,9 +638,25 @@ document.addEventListener('DOMContentLoaded', function () {
     if (vfnInput) loc.customVfn = parseFloat(vfnInput.value) || 127;
     const vffInput = document.getElementById('inspCustomVff');
     if (vffInput) loc.customVff = parseFloat(vffInput.value) || 220;
-    loc.vehicleCount = parseInt(getRadioVal('inspVehicleCount') || '1', 10);
+
+    const vRadio = getRadioVal('inspVehicleCount');
+    if (vRadio === 'mais_de_3') {
+      const customVInput = document.getElementById('inspInputCustomVehicle');
+      loc.vehicleCount = Math.max(4, parseInt(customVInput?.value || '4', 10));
+    } else {
+      loc.vehicleCount = parseInt(vRadio || '1', 10);
+    }
+
     loc.chargerType = getRadioVal('inspChargerType') || 'wallbox';
-    loc.distanceApprox = getRadioVal('inspDistanceApprox') || '10-25';
+
+    const dRadio = getRadioVal('inspDistanceApprox');
+    if (dRadio === '>50') {
+      const customDInput = document.getElementById('inspInputCustomDistance');
+      loc.distanceApprox = '>50';
+      loc.customDistance = Math.max(51, parseFloat(customDInput?.value || '60'));
+    } else {
+      loc.distanceApprox = dRadio || '10-25';
+    }
 
     const cityInput = document.getElementById('inspCityStateInput');
     if (cityInput && cityInput.value.trim()) {
@@ -666,9 +682,29 @@ document.addEventListener('DOMContentLoaded', function () {
     const vffInput = document.getElementById('inspCustomVff');
     if (vffInput && loc.customVff) vffInput.value = loc.customVff;
 
-    if (loc.vehicleCount) setRadio('inspVehicleCount', loc.vehicleCount);
+    const vBox = document.getElementById('inspCustomVehicleBox');
+    const vInput = document.getElementById('inspInputCustomVehicle');
+    if (loc.vehicleCount > 3) {
+      setRadio('inspVehicleCount', 'mais_de_3');
+      if (vBox) vBox.style.display = 'block';
+      if (vInput) vInput.value = loc.vehicleCount;
+    } else {
+      setRadio('inspVehicleCount', String(loc.vehicleCount || 1));
+      if (vBox) vBox.style.display = 'none';
+    }
+
     if (loc.chargerType) setRadio('inspChargerType', loc.chargerType);
-    if (loc.distanceApprox) setRadio('inspDistanceApprox', loc.distanceApprox);
+
+    const dBox = document.getElementById('inspCustomDistanceBox');
+    const dInput = document.getElementById('inspInputCustomDistance');
+    if (loc.distanceApprox === '>50') {
+      setRadio('inspDistanceApprox', '>50');
+      if (dBox) dBox.style.display = 'block';
+      if (dInput && loc.customDistance) dInput.value = loc.customDistance;
+    } else {
+      setRadio('inspDistanceApprox', loc.distanceApprox || '10-25');
+      if (dBox) dBox.style.display = 'none';
+    }
 
     const cityInput = document.getElementById('inspCityStateInput');
     if (cityInput && loc.cityState) {
@@ -687,10 +723,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.querySelectorAll('input[name="inspVehicleCount"]').forEach(r => {
     r.addEventListener('change', function () {
-      UI.inspectionState.localData.vehicleCount = this.value;
-      UI.syncVistoriaToTechnical('vehicleCount', this.value);
+      const vBox = document.getElementById('inspCustomVehicleBox');
+      const vInput = document.getElementById('inspInputCustomVehicle');
+      if (this.value === 'mais_de_3') {
+        if (vBox) vBox.style.display = 'block';
+        const count = Math.max(4, parseInt(vInput?.value || '4', 10));
+        UI.inspectionState.localData.vehicleCount = count;
+        UI.syncVistoriaToTechnical('vehicleCount', count);
+      } else {
+        if (vBox) vBox.style.display = 'none';
+        const count = parseInt(this.value, 10);
+        UI.inspectionState.localData.vehicleCount = count;
+        UI.syncVistoriaToTechnical('vehicleCount', count);
+      }
     });
   });
+
+  const inspCustomVInput = document.getElementById('inspInputCustomVehicle');
+  if (inspCustomVInput) {
+    inspCustomVInput.addEventListener('input', function () {
+      const count = Math.max(4, parseInt(this.value || '4', 10));
+      UI.inspectionState.localData.vehicleCount = count;
+      UI.syncVistoriaToTechnical('vehicleCount', count);
+    });
+  }
 
   document.querySelectorAll('input[name="inspChargerType"]').forEach(r => {
     r.addEventListener('change', function () {
@@ -701,10 +757,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.querySelectorAll('input[name="inspDistanceApprox"]').forEach(r => {
     r.addEventListener('change', function () {
-      UI.inspectionState.localData.distanceApprox = this.value;
-      UI.syncVistoriaToTechnical('distanceApprox', this.value);
+      const dBox = document.getElementById('inspCustomDistanceBox');
+      const dInput = document.getElementById('inspInputCustomDistance');
+      if (this.value === '>50') {
+        if (dBox) dBox.style.display = 'block';
+        const dist = Math.max(51, parseFloat(dInput?.value || '60'));
+        UI.inspectionState.localData.distanceApprox = '>50';
+        UI.inspectionState.localData.customDistance = dist;
+        UI.syncVistoriaToTechnical('distanceApprox', '>50');
+      } else {
+        if (dBox) dBox.style.display = 'none';
+        UI.inspectionState.localData.distanceApprox = this.value;
+        UI.syncVistoriaToTechnical('distanceApprox', this.value);
+      }
     });
   });
+
+  const inspCustomDInput = document.getElementById('inspInputCustomDistance');
+  if (inspCustomDInput) {
+    inspCustomDInput.addEventListener('input', function () {
+      const dist = Math.max(1, parseFloat(this.value || '60'));
+      UI.inspectionState.localData.customDistance = dist;
+      UI.state.distance = dist;
+      const distField = document.getElementById('inputDistance');
+      if (distField) distField.value = dist;
+      UI.recalculateAndRender();
+    });
+  }
 
   const inspVfn = document.getElementById('inspCustomVfn');
   if (inspVfn) {
