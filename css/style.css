@@ -2265,3 +2265,291 @@ input:checked + .slider:before {
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   ALIMENTAÇÃO ELÉTRICA, TENSÃO DINÂMICA & RESUMO DA ANÁLISE TÉCNICA
+   ========================================================================== */
+
+/* Badges de Status de Origem e Verificação */
+.badge-status-confirmed {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-status-suggested {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: #FEF9C3;
+  color: #854D0E;
+  border: 1px solid #FEF08A;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-status-pending {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-status-ai {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Grid de Pílulas de Tensão Dinâmica (Etapa 1 da Vistoria) */
+.voltage-options-pill-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.voltage-pill-btn {
+  padding: 10px 16px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.voltage-pill-btn:hover {
+  background: var(--bg-surface-subtle);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.voltage-pill-btn.active {
+  border-color: #16A34A;
+  background: #F0FDF4;
+  color: #15803D;
+  box-shadow: 0 0 0 1px #16A34A;
+  font-weight: 700;
+}
+
+.voltage-pill-btn .pill-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: #DCFCE7;
+  color: #15803D;
+  font-weight: 700;
+}
+
+/* Área A: 4 Cartões Compactos de Resumo da Instalação */
+.tech-area-container {
+  margin-bottom: 20px;
+}
+
+.tech-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.tech-summary-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.tech-summary-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-hover);
+}
+
+.tech-summary-card.status-confirmed {
+  border-left: 4px solid #16A34A;
+}
+
+.tech-summary-card.status-suggested {
+  border-left: 4px solid #CA8A04;
+}
+
+.tech-summary-card.status-pending {
+  border-left: 4px solid #94A3B8;
+}
+
+.tech-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tech-summary-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tech-summary-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.tech-summary-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.tech-summary-sub {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+/* Drawer / Acordeão "Ver Detalhes do Cálculo" nos Cenários */
+.btn-details-toggle {
+  background: transparent;
+  border: none;
+  color: #2563EB;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  transition: color 0.15s;
+}
+
+.btn-details-toggle:hover {
+  color: #1D4ED8;
+  text-decoration: underline;
+}
+
+.calc-details-drawer {
+  display: none;
+  background: #F8FAFC;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.calc-details-drawer.is-open {
+  display: block;
+}
+
+.calc-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+.calc-details-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: 11.5px;
+}
+
+.calc-details-table td:first-child {
+  font-weight: 600;
+  color: var(--text-main);
+  width: 45%;
+}
+
+/* Área D: Adequações Necessárias, Componentes & Verificações */
+.tech-adapt-block {
+  margin-bottom: 18px;
+}
+
+.tech-adapt-block-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tech-bom-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.tech-bom-item {
+  background: #F8FAFC;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.tech-bom-item strong {
+  display: block;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.verification-list-box {
+  background: #FFFBEB;
+  border: 1px solid #FEF08A;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 12.5px;
+  color: #78350F;
+}
+
+.verification-list-box ul {
+  margin-left: 18px;
+  margin-top: 6px;
+}
+
+.verification-list-box li {
+  margin-bottom: 4px;
+}

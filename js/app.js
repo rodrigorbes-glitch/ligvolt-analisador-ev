@@ -43,7 +43,19 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function applyInstallationPreset(preset) {
-    if (preset === 'res-mono-32') {
+    if (preset === 'bifasica-padrao') {
+      UI.state.supplyType = 'bifasica';
+      UI.state.voltagePreset = '127_220';
+      UI.state.distance = 20;
+      UI.state.mainBreakerKnown = true;
+      UI.state.mainBreaker = 50;
+      UI.state.demandKnown = true;
+      UI.state.demandMode = 'total';
+      UI.state.demandTotal = 15;
+      UI.state.chargers = [
+        { id: 1, name: 'Wallbox Residencial (F-F)', nominalCurrent: 32, enabled: true, phaseConfig: 'L1-L2' }
+      ];
+    } else if (preset === 'res-mono-32') {
       UI.state.supplyType = 'monofasica';
       UI.state.voltagePreset = 'custom';
       UI.state.voltageSingle = 220;
@@ -149,6 +161,7 @@ document.addEventListener('DOMContentLoaded', function () {
       toggleDemandInputs();
       UI.renderChargersList();
       UI.recalculateAndRender();
+      UI.syncTechnicalToVistoria('supplyType', this.value);
     });
   });
 
@@ -159,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
       UI.state.voltagePreset = this.value;
       toggleCustomVoltageInputs();
       UI.recalculateAndRender();
+      UI.syncTechnicalToVistoria('voltagePreset', this.value);
     });
   }
 
@@ -193,6 +207,7 @@ document.addEventListener('DOMContentLoaded', function () {
     inputDist.addEventListener('input', function () {
       UI.state.distance = parseFloat(this.value) || 0;
       UI.recalculateAndRender();
+      UI.syncTechnicalToVistoria('distance', this.value);
     });
   }
 
@@ -206,6 +221,7 @@ document.addEventListener('DOMContentLoaded', function () {
       UI.state.mainBreakerKnown = true;
       if (chkMainBreakerUnknown) chkMainBreakerUnknown.checked = false;
       UI.recalculateAndRender();
+      UI.syncTechnicalToVistoria('mainBreaker', this.value);
     });
   }
 
@@ -615,6 +631,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     loc.locationType = getRadioVal('inspLocationType') || 'residencia';
     loc.installArea = getRadioVal('inspInstallArea') || 'garagem_aberta';
+    loc.supplyType = getRadioVal('inspSupplyType') || 'bifasica';
+    const activeVoltBtn = document.querySelector('#inspVoltageOptionsContainer .voltage-pill-btn.active');
+    if (activeVoltBtn) loc.voltagePreset = activeVoltBtn.dataset.val;
+    const vfnInput = document.getElementById('inspCustomVfn');
+    if (vfnInput) loc.customVfn = parseFloat(vfnInput.value) || 127;
+    const vffInput = document.getElementById('inspCustomVff');
+    if (vffInput) loc.customVff = parseFloat(vffInput.value) || 220;
     loc.vehicleCount = parseInt(getRadioVal('inspVehicleCount') || '1', 10);
     loc.chargerType = getRadioVal('inspChargerType') || 'wallbox';
     loc.distanceApprox = getRadioVal('inspDistanceApprox') || '10-25';
@@ -635,6 +658,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (loc.locationType) setRadio('inspLocationType', loc.locationType);
     if (loc.installArea) setRadio('inspInstallArea', loc.installArea);
+    setRadio('inspSupplyType', loc.supplyType || 'bifasica');
+    UI.renderStep1VoltageOptions(loc.supplyType || 'bifasica', loc.voltagePreset || '127_220');
+
+    const vfnInput = document.getElementById('inspCustomVfn');
+    if (vfnInput && loc.customVfn) vfnInput.value = loc.customVfn;
+    const vffInput = document.getElementById('inspCustomVff');
+    if (vffInput && loc.customVff) vffInput.value = loc.customVff;
+
     if (loc.vehicleCount) setRadio('inspVehicleCount', loc.vehicleCount);
     if (loc.chargerType) setRadio('inspChargerType', loc.chargerType);
     if (loc.distanceApprox) setRadio('inspDistanceApprox', loc.distanceApprox);
@@ -643,6 +674,54 @@ document.addEventListener('DOMContentLoaded', function () {
     if (cityInput && loc.cityState) {
       cityInput.value = loc.cityState;
     }
+  }
+
+  // Sincronização em tempo real dos seletores da Etapa 1 da Vistoria com a Análise Técnica
+  document.querySelectorAll('input[name="inspSupplyType"]').forEach(r => {
+    r.addEventListener('change', function () {
+      UI.inspectionState.localData.supplyType = this.value;
+      UI.renderStep1VoltageOptions(this.value, UI.inspectionState.localData.voltagePreset);
+      UI.syncVistoriaToTechnical('supplyType', this.value);
+    });
+  });
+
+  document.querySelectorAll('input[name="inspVehicleCount"]').forEach(r => {
+    r.addEventListener('change', function () {
+      UI.inspectionState.localData.vehicleCount = this.value;
+      UI.syncVistoriaToTechnical('vehicleCount', this.value);
+    });
+  });
+
+  document.querySelectorAll('input[name="inspChargerType"]').forEach(r => {
+    r.addEventListener('change', function () {
+      UI.inspectionState.localData.chargerType = this.value;
+      UI.syncVistoriaToTechnical('chargerType', this.value);
+    });
+  });
+
+  document.querySelectorAll('input[name="inspDistanceApprox"]').forEach(r => {
+    r.addEventListener('change', function () {
+      UI.inspectionState.localData.distanceApprox = this.value;
+      UI.syncVistoriaToTechnical('distanceApprox', this.value);
+    });
+  });
+
+  const inspVfn = document.getElementById('inspCustomVfn');
+  if (inspVfn) {
+    inspVfn.addEventListener('input', function () {
+      UI.inspectionState.localData.customVfn = parseFloat(this.value) || 127;
+      UI.state.voltagePhaseNeutral = UI.inspectionState.localData.customVfn;
+      UI.recalculateAndRender();
+    });
+  }
+
+  const inspVff = document.getElementById('inspCustomVff');
+  if (inspVff) {
+    inspVff.addEventListener('input', function () {
+      UI.inspectionState.localData.customVff = parseFloat(this.value) || 220;
+      UI.state.voltagePhasePhase = UI.inspectionState.localData.customVff;
+      UI.recalculateAndRender();
+    });
   }
 
   const btnNextStep1 = document.getElementById('btnNextStep1');

@@ -136,6 +136,29 @@
     let isBlocked = false;
     let blockReason = '';
 
+    // 0. ANÁLISE DE ALIMENTAÇÃO E TENSÃO (CONDIÇÕES ELÉTRICAS DE ENTRADA)
+    if (localData && localData.supplyType === 'nao_sei') {
+      problemsFound.push({
+        title: 'Tipo de alimentação elétrica não confirmado',
+        description: 'Não foi possível confirmar o número de fases (monofásica, bifásica ou trifásica). Foi adotado o padrão operacional bifásico como sugestão preliminar.',
+        severity: 'necessaria',
+        evidence: 'Declarado como desconhecido na vistoria'
+      });
+      pendingVerifications.push('Identificar o número de condutores de fase no ramal de entrada / medidor da concessionária.');
+      necessaryActions.push('Confirmar o número de fases no padrão de entrada antes da compra de materiais.');
+    }
+
+    if (localData && localData.voltagePreset === 'nao_sei') {
+      problemsFound.push({
+        title: 'Tensão elétrica nominal não confirmada',
+        description: 'A tensão de fornecimento (127V, 220V ou 380V) não foi confirmada.',
+        severity: 'necessaria',
+        evidence: 'Declarado como desconhecido na vistoria'
+      });
+      pendingVerifications.push('Medir a tensão fase-neutro e fase-fase com multímetro no quadro principal.');
+      necessaryActions.push('Aferir tensões de fornecimento reais com multímetro na visita técnica.');
+    }
+
     // 1. ANÁLISE DE LOCALIZAÇÃO E INCÊNDIO (CBMERJ CHEMG 326/2025 E SEGURANÇA)
     const isRioDeJaneiro = localData.cityState && localData.cityState.toUpperCase().includes('RJ');
     const isSubsoloOuFechada = localData.installArea === 'subsolo' || localData.installArea === 'garagem_fechada';
@@ -396,6 +419,14 @@
               Distância estimada: <strong>${localData.distanceApprox || 'Não informada'}</strong>
             </td>
           </tr>
+          <tr>
+            <td><strong>Alimentação Elétrica:</strong></td>
+            <td colspan="3">
+              Rede: <strong>${formatSupplyType(localData.supplyType)}</strong> | 
+              Tensão: <strong>${formatVoltage(localData.voltagePreset, localData.customVfn, localData.customVff)}</strong>
+              ${(localData.supplyType === 'nao_sei' || localData.voltagePreset === 'nao_sei') ? ' <span style="color:#D97706; font-size:11px; font-weight:700;">(⚠️ Pendente de verificação)</span>' : ''}
+            </td>
+          </tr>
           ${notes ? `<tr><td><strong>Observações:</strong></td><td colspan="3">${escapeHtml(notes)}</td></tr>` : ''}
         </table>
       </div>
@@ -570,6 +601,26 @@
       indefinido: 'Ainda não definido pelo cliente'
     };
     return map[type] || type || 'Não definido';
+  }
+
+  function formatSupplyType(type) {
+    const map = {
+      monofasica: 'Monofásica (F+N)',
+      bifasica: 'Bifásica (2F+N / 2F) — Padrão Ligvolt',
+      trifasica: 'Trifásica (3F+N / 3F)',
+      nao_sei: 'Não identificada (Pendente de medição)'
+    };
+    return map[type] || 'Bifásica (Padrão sugerido)';
+  }
+
+  function formatVoltage(preset, vfn, vff) {
+    if (preset === '127_mono') return '127V (Fase-Neutro)';
+    if (preset === '220_mono') return '220V (Fase-Neutro ou Fase-Fase)';
+    if (preset === '127_220') return '127 / 220V (F-N: 127V | F-F: 220V)';
+    if (preset === '220_380') return '220 / 380V (F-N: 220V | F-F: 380V)';
+    if (preset === 'custom') return `Personalizada (${vfn || 127}V / ${vff || 220}V)`;
+    if (preset === 'nao_sei') return 'Não informada (Aferir no padrão)';
+    return preset || '127 / 220V';
   }
 
   function formatConfirmationStatus(val) {

@@ -180,18 +180,29 @@
     } else if (preset === '220_380') {
       fn = 220;
       ff = 380;
+    } else if (preset === '220_mono' || preset === '220') {
+      fn = 220;
+      ff = 220;
+    } else if (preset === '127') {
+      fn = 127;
+      ff = 127;
+    } else if (preset === '380') {
+      fn = 380;
+      ff = 380;
     } else if (preset === 'custom') {
       fn = parseFloat(input.voltagePhaseNeutral) || 220;
-      ff = parseFloat(input.voltagePhasePhase) || 380;
+      ff = parseFloat(input.voltagePhasePhase) || (fn === 127 ? 220 : (fn === 220 ? 380 : fn));
     }
 
     if (input.supplyType === 'monofasica') {
       const singleV = parseFloat(input.voltageSingle) || (fn === 127 ? 127 : 220);
       return { fn: singleV, ff: singleV, nominal: singleV, label: `${singleV}V` };
     } else if (input.supplyType === 'bifasica') {
-      return { fn: fn, ff: ff, nominal: ff, label: `${fn}V / ${ff}V` };
+      const label = fn === ff ? `${ff}V` : `${fn}V / ${ff}V`;
+      return { fn, ff, nominal: ff, label };
     } else {
-      return { fn: fn, ff: ff, nominal: ff, label: `${fn}V / ${ff}V` };
+      const label = fn === ff ? `${ff}V` : `${fn}V / ${ff}V`;
+      return { fn, ff, nominal: ff, label };
     }
   }
 
@@ -553,7 +564,8 @@
         }
       },
       maxTotalPhase,
-      maxEvPhase
+      maxEvPhase,
+      maxPhaseProject: maxTotalPhase
     };
   }
 

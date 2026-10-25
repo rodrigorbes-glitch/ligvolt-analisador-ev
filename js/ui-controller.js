@@ -21,24 +21,24 @@
 }(typeof self !== 'undefined' ? self : this, function (Engine, Compliance, Diagnostic, Report, Dossier, SmartInspection) {
   'use strict';
 
-  // Estado interno da aplicação
+  // Estado interno da aplicação (Análise Técnica & Engenharia)
   let state = {
     activeTab: 'tab-dimensionamento',
-    activeDocType: 'relatorio',
+    activeDocType: 'vistoria_preliminar',
     showAdaptations: false,
-    supplyType: 'trifasica',
-    voltagePreset: '220_380',
-    voltagePhaseNeutral: 220,
-    voltagePhasePhase: 380,
+    supplyType: 'bifasica', // Bifásica selecionada por padrão (padrão operacional Ligvolt)
+    voltagePreset: '127_220',
+    voltagePhaseNeutral: 127,
+    voltagePhasePhase: 220,
     voltageSingle: 220,
-    distance: 25,
+    distance: 20,
     mainBreakerKnown: true,
-    mainBreaker: 100,
+    mainBreaker: 50,
     demandKnown: true,
-    demandMode: 'per_phase',
+    demandMode: 'total',
     demandUnit: 'A',
-    demandTotal: 40,
-    demandPhases: { L1: 30, L2: 25, L3: 20 },
+    demandTotal: 15,
+    demandPhases: { L1: 10, L2: 10, L3: 0 },
     cableInsulation: 'PVC',
     installationMethod: 'B1',
     groupingCircuits: 1,
@@ -47,9 +47,12 @@
     continuousMarginFactor: 1.25,
     maxVoltageDrop: 4.0,
     chargers: [
-      { id: 1, name: 'Carregador 1 (Vaga A)', nominalCurrent: 32, enabled: true, phaseConfig: '3F' },
-      { id: 2, name: 'Carregador 2 (Vaga B)', nominalCurrent: 32, enabled: true, phaseConfig: '3F' }
+      { id: 1, name: 'Wallbox Bifásico 32A', nominalCurrent: 32, enabled: true, phaseConfig: 'L1-L2' }
     ],
+    supplyTypeStatus: 'sugerido', // 'sugerido', 'confirmado', 'ia', 'pendente'
+    voltageStatus: 'sugerido',
+    distanceStatus: 'estimado',
+    capacityStatus: 'pendente',
     checklistResponses: {},
     reportMetadata: {
       clientName: '',
@@ -69,6 +72,14 @@
     localData: {
       locationType: 'residencia',
       installArea: 'garagem_aberta',
+      supplyType: 'bifasica', // Bifásica padrão sugerido da Ligvolt
+      voltagePreset: '127_220',
+      voltagePhaseNeutral: 127,
+      voltagePhasePhase: 220,
+      voltageSingle: 220,
+      voltageText: '127V / 220V',
+      supplyTypeStatus: 'sugerido',
+      voltageStatus: 'sugerido',
       vehicleCount: 1,
       chargerType: 'wallbox',
       distanceApprox: '10-25',
@@ -87,6 +98,19 @@
     },
     diagnosticResult: null
   };
+
+  /**
+   * Helper para obter tensões nominais da configuração atual
+   */
+  function getVoltagesForDisplay() {
+    return Engine.getVoltages({
+      supplyType: state.supplyType,
+      voltagePreset: state.voltagePreset,
+      voltagePhaseNeutral: state.voltagePhaseNeutral,
+      voltagePhasePhase: state.voltagePhasePhase,
+      voltageSingle: state.voltageSingle
+    });
+  }
 
   /**
    * Inicializa os valores padrão do checklist
@@ -115,11 +139,12 @@
 
       const phaseOptions = getPhaseOptions(state.supplyType);
 
-      // Estima potência ativa do carregador
-      let voltage = state.voltagePreset === '127_220' ? (ch.phaseConfig === '3F' || ch.phaseConfig.includes('-L') ? 220 : 127) : (ch.phaseConfig === '3F' ? 380 : (ch.phaseConfig.includes('-L') ? 380 : 220));
+      // Estima potência ativa do carregador com base na tensão do circuito
+      const vObj = getVoltagesForDisplay();
+      const circuitVoltage = (ch.phaseConfig === '3F' || ch.phaseConfig.includes('-L')) ? vObj.ff : vObj.fn;
       let pKw = ch.phaseConfig === '3F' 
-        ? ((Math.sqrt(3) * voltage * ch.nominalCurrent * 0.99) / 1000).toFixed(1)
-        : ((voltage * ch.nominalCurrent * 0.99) / 1000).toFixed(1);
+        ? ((Math.sqrt(3) * circuitVoltage * ch.nominalCurrent * 0.99) / 1000).toFixed(1)
+        : ((circuitVoltage * ch.nominalCurrent * 0.99) / 1000).toFixed(1);
 
       card.innerHTML = `
         <div class="charger-card-header">
@@ -305,10 +330,131 @@
     const diagnostic = Diagnostic.evaluateDiagnostic(calcResult, state.checklistResponses, calcInput);
 
     renderDiagnosticCard(diagnostic, calcResult);
-    renderSizingResults(calcResult);
+    renderTechSummaryCards(calcResult, diagnostic);
+    renderSizingResults(calcResult, diagnostic);
     renderScenariosComparison(calcResult);
+    renderTechAdaptationsSection(calcResult, diagnostic);
 
     return { calcResult, diagnostic };
+  }
+
+  /**
+   * Renderiza os 4 Cartões Compactos do Resumo da Instalação (Área A)
+   */
+  function renderTechSummaryCards(calcResult, diagnostic) {
+    const container = document.getElementById('techSummaryGrid');
+    if (!container) return;
+
+    // 1. Alimentação & Tensão
+    const supplyLabels = {
+      monofasica: 'Monofásica (F+N)',
+      bifasica: 'Bifásica (2F+N)',
+      trifasica: 'Trifásica (3F+N)',
+      nao_sei: 'Não Definida'
+    };
+    const sLabel = supplyLabels[state.supplyType] || state.supplyType;
+    const vObj = getVoltagesForDisplay();
+    const vLabel = vObj.label;
+
+    let supplyBadge = '';
+    let supplyCardClass = 'status-confirmed';
+    if (state.supplyTypeStatus === 'sugerido') {
+      supplyBadge = '<span class="badge-status-suggested">⚡ Sugestão Ligvolt</span>';
+      supplyCardClass = 'status-suggested';
+    } else if (state.supplyTypeStatus === 'confirmado') {
+      supplyBadge = '<span class="badge-status-confirmed">✓ Confirmado</span>';
+      supplyCardClass = 'status-confirmed';
+    } else {
+      supplyBadge = '<span class="badge-status-pending">⚪ Pendente de Verificação</span>';
+      supplyCardClass = 'status-pending';
+    }
+
+    // 2. Carregadores e Potência Total
+    const totalKW = calcResult.chargers ? calcResult.chargers.reduce((acc, c) => acc + (c.powerKW || 0), 0).toFixed(1) : '0';
+    const activeCount = calcResult.chargers ? calcResult.chargers.length : 0;
+    const chargersDesc = activeCount > 0 
+      ? calcResult.chargers.map(c => `${c.nominalCurrent}A (${c.phaseConfig})`).join(', ')
+      : 'Nenhum ativo';
+
+    // 3. Distância do Quadro
+    let distBadge = state.distanceStatus === 'confirmado' 
+      ? '<span class="badge-status-confirmed">✓ Medido</span>' 
+      : '<span class="badge-status-suggested">~ Estimado</span>';
+
+    // 4. Capacidade Elétrica Preliminar
+    let capTitle = '4. Capacidade do Disjuntor';
+    let capValue = state.mainBreakerKnown ? `${state.mainBreaker}A` : 'Pendente de verificação';
+    let capSub = '';
+    let capCardClass = 'status-confirmed';
+
+    if (!state.mainBreakerKnown) {
+      capSub = '<span class="badge-status-pending">⚪ Medidor não verificado</span>';
+      capCardClass = 'status-pending';
+    } else {
+      const isOverload = calcResult.phaseSummary && calcResult.phaseSummary.isOverloaded;
+      if (isOverload) {
+        capSub = '<span class="badge-status-suggested" style="background:#FEE2E2; color:#DC2626; border-color:#FECACA;">⚠️ Sobrecarga detectada</span>';
+        capCardClass = 'status-suggested';
+      } else {
+        const maxPhase = calcResult.phaseSummary ? calcResult.phaseSummary.maxPhaseProject : 0;
+        const folga = Math.max(0, (state.mainBreaker - maxPhase)).toFixed(1);
+        capSub = `<span class="badge-status-confirmed">✓ Folga estimada: ~${folga}A</span>`;
+      }
+    }
+
+    container.innerHTML = `
+      <!-- CARD 1: FORNECIMENTO & TENSÃO -->
+      <div class="tech-summary-card ${supplyCardClass}">
+        <div class="tech-summary-header">
+          <span class="tech-summary-title">1. Alimentação & Tensão</span>
+          <span class="tech-summary-icon">⚡</span>
+        </div>
+        <div class="tech-summary-value">${vLabel}</div>
+        <div class="tech-summary-sub">
+          <span>${sLabel}</span>
+          ${supplyBadge}
+        </div>
+      </div>
+
+      <!-- CARD 2: CARREGADORES & POTÊNCIA -->
+      <div class="tech-summary-card status-confirmed">
+        <div class="tech-summary-header">
+          <span class="tech-summary-title">2. Pontos de Recarga</span>
+          <span class="tech-summary-icon">🚗</span>
+        </div>
+        <div class="tech-summary-value">${totalKW} kW</div>
+        <div class="tech-summary-sub">
+          <span>${activeCount} Carregador(es)</span>
+          <span style="font-size: 10.5px; color: var(--text-muted);">${chargersDesc}</span>
+        </div>
+      </div>
+
+      <!-- CARD 3: DISTÂNCIA DO ALIMENTADOR -->
+      <div class="tech-summary-card ${state.distanceStatus === 'confirmado' ? 'status-confirmed' : 'status-suggested'}">
+        <div class="tech-summary-header">
+          <span class="tech-summary-title">3. Trajeto dos Cabos</span>
+          <span class="tech-summary-icon">📏</span>
+        </div>
+        <div class="tech-summary-value">${state.distance} metros</div>
+        <div class="tech-summary-sub">
+          <span>Trecho até os pontos</span>
+          ${distBadge}
+        </div>
+      </div>
+
+      <!-- CARD 4: CAPACIDADE ELÉTRICA -->
+      <div class="tech-summary-card ${capCardClass}">
+        <div class="tech-summary-header">
+          <span class="tech-summary-title">${capTitle}</span>
+          <span class="tech-summary-icon">🛡️</span>
+        </div>
+        <div class="tech-summary-value">${capValue}</div>
+        <div class="tech-summary-sub">
+          <span>Padrão de entrada</span>
+          ${capSub}
+        </div>
+      </div>
+    `;
   }
 
   /**
@@ -397,9 +543,9 @@
   }
 
   /**
-   * Renderiza os resultados de dimensionamento elétrico
+   * Renderiza os resultados de dimensionamento elétrico (Área C: Resumo em Destaque)
    */
-  function renderSizingResults(calcResult) {
+  function renderSizingResults(calcResult, diagnostic) {
     const summaryContainer = document.getElementById('sizingSummaryContainer');
     if (!summaryContainer) return;
 
@@ -412,10 +558,56 @@
       return;
     }
 
-    const { chargers, phaseSummary, input } = calcResult;
+    const { chargers, phaseSummary, input, scenarioA, scenarioB } = calcResult;
     const phaseBarsHtml = renderPhaseLoadMeters(phaseSummary, input.mainBreaker, input.supplyType);
 
+    const totalPower = chargers.reduce((sum, c) => sum + (c.powerKW || 0), 0).toFixed(1);
+    const maxDrop = chargers.reduce((max, c) => Math.max(max, c.voltageDropPercent), 0).toFixed(2);
+    const recommendedSection = scenarioA ? scenarioA.cableDescription : (chargers[0] ? `${chargers[0].cableSection} mm²` : '—');
+    const recommendedBreaker = scenarioA ? `${scenarioA.breakerRating}A (${scenarioA.breakerPoles})` : (chargers[0] ? `${chargers[0].recommendedBreaker}A` : '—');
+
+    // Alerta de parâmetros pendentes
+    let pendingWarning = '';
+    if (!input.mainBreaker) {
+      pendingWarning = `
+        <div style="background: #FEF9C3; border: 1px solid #FEF08A; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 12.5px; color: #854D0E; margin-bottom: 14px;">
+          ⚠️ <strong>Atenção:</strong> Disjuntor geral pendente de verificação presencial. O dimensionamento exibido é preliminar e não deve ser executado antes da confirmação da capacidade no padrão de entrada.
+        </div>
+      `;
+    }
+
     summaryContainer.innerHTML = `
+      ${pendingWarning}
+
+      <!-- RESUMO EM DESTAQUE DOS RESULTADOS TÉCNICOS -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+        <div style="background: #F8FAFC; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px;">
+          <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Potência Total</span>
+          <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-top: 2px;">${totalPower} kW</div>
+          <span style="font-size: 11px; color: var(--text-secondary);">${chargers.length} ponto(s) ativos</span>
+        </div>
+
+        <div style="background: #F8FAFC; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px;">
+          <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Corrente de Projeto (125%)</span>
+          <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-top: 2px;">${phaseSummary ? phaseSummary.maxPhaseProject : '—'} A</div>
+          <span style="font-size: 11px; color: var(--text-secondary);">Maior fase carregada</span>
+        </div>
+
+        <div style="background: #F8FAFC; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px;">
+          <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Queda de Tensão Máxima</span>
+          <div style="font-size: 20px; font-weight: 800; color: ${parseFloat(maxDrop) <= input.maxDropAllowed ? '#15803D' : '#DC2626'}; margin-top: 2px;">
+            ${maxDrop}%
+          </div>
+          <span style="font-size: 11px; color: var(--text-secondary);">Limite normativo: ${input.maxDropAllowed}%</span>
+        </div>
+
+        <div style="background: #F8FAFC; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px;">
+          <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Proteção Obrigatória DR</span>
+          <div style="font-size: 15px; font-weight: 800; color: #15803D; margin-top: 4px;">Tipo A / 30mA</div>
+          <span style="font-size: 11px; color: var(--text-secondary);">Com RDC-DD 6mA DC</span>
+        </div>
+      </div>
+
       <div class="phase-bars-panel">
         <h4 style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
           Balanço de Carga por Fase vs Limite do Disjuntor Geral
@@ -463,7 +655,7 @@
   }
 
   /**
-   * Renderiza a comparação entre Cenário A e Cenário B (Dois Cartões Comparativos Limpos)
+   * Renderiza a comparação entre Cenário A e Cenário B (Com Memória de Cálculo Expansível)
    */
   function renderScenariosComparison(calcResult) {
     const container = document.getElementById('scenariosComparisonContainer');
@@ -487,19 +679,19 @@
             <table class="scenario-specs-table">
               <tr>
                 <td>Cabo Alimentador:</td>
-                <td>${scenarioA.cableDescription}</td>
+                <td><strong>${scenarioA.cableDescription}</strong></td>
               </tr>
               <tr>
                 <td>Disjuntor Geral QGBT:</td>
                 <td>${scenarioA.breakerRating}A (${scenarioA.breakerPoles})</td>
               </tr>
               <tr>
-                <td>Queda de Tensão:</td>
-                <td>${scenarioA.voltageDropPercent}% (no alimentador)</td>
+                <td>Queda de Tensão no Trecho:</td>
+                <td>${scenarioA.voltageDropPercent}% (${scenarioA.voltageDropPercent <= input.maxDropAllowed ? '✓ Conforme NBR 5410' : '⚠️ Superior ao limite'})</td>
               </tr>
               <tr>
                 <td>Condutor Proteção (PE):</td>
-                <td>${scenarioA.peSection} mm²</td>
+                <td>${scenarioA.peSection} mm² (Tabela 58 NBR 5410)</td>
               </tr>
               <tr>
                 <td>Proteções dos Carregadores:</td>
@@ -509,14 +701,35 @@
           </div>
 
           <div>
-            <button type="button" class="scenario-details-btn" data-action="toggle-scenario-drawer" data-target="drawerA">
-              Ver Detalhes do Cenário A ▼
+            <button type="button" class="btn-details-toggle" data-action="toggle-scenario-drawer" data-target="drawerA">
+              🔍 Ver detalhes do cálculo do Cenário A ▼
             </button>
-            <div class="scenario-drawer" id="drawerA">
-              <p><strong>Vantagens Técnicas:</strong></p>
-              <ul style="padding-left: 16px; margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
-                ${comparison.scenarioAAdvantages.map(adv => `<li>${adv}</li>`).join('')}
-              </ul>
+            <div class="calc-details-drawer" id="drawerA">
+              <p><strong>Fórmulas e Critérios Normativos:</strong></p>
+              <table class="calc-details-table">
+                <tr>
+                  <td>Corrente de Projeto (IB):</td>
+                  <td>${scenarioA.currentIB}A (com margem de operação contínua 125%)</td>
+                </tr>
+                <tr>
+                  <td>Fatores de Correção:</td>
+                  <td>fTemp = ${input.fTemp.toFixed(2)} | fAgrup = ${input.fGroup.toFixed(2)} | fTotal = ${input.fCorrection.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td>Coordenação de Proteção:</td>
+                  <td>IB (${scenarioA.currentIB}A) ≤ In (${scenarioA.breakerRating}A) ≤ Iz (${scenarioA.ampacityIz}A) ✓</td>
+                </tr>
+                <tr>
+                  <td>Equação Queda de Tensão:</td>
+                  <td>ΔU = √3 · L · IB · (R · cosφ + X · senφ) / Vnom</td>
+                </tr>
+              </table>
+              <div style="margin-top: 8px;">
+                <strong>Vantagens Técnicas:</strong>
+                <ul style="padding-left: 16px; margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
+                  ${comparison.scenarioAAdvantages.map(adv => `<li>${adv}</li>`).join('')}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -535,10 +748,10 @@
             <table class="scenario-specs-table">
               <tr>
                 <td>Cabos no Trajeto:</td>
-                <td>${scenarioB.chargersCount} cabos dedicados em paralelo</td>
+                <td><strong>${scenarioB.chargersCount} circuitos dedicados em paralelo</strong></td>
               </tr>
               <tr>
-                <td>Disjuntores:</td>
+                <td>Disjuntores Termomagnéticos:</td>
                 <td>${chargers.map(c => `${c.recommendedBreaker}A`).join(', ')} (no quadro geral)</td>
               </tr>
               <tr>
@@ -547,7 +760,7 @@
               </tr>
               <tr>
                 <td>Fator de Agrupamento:</td>
-                <td>${input.fGroup.toFixed(2)} (gera derating térmico)</td>
+                <td>${input.fGroup.toFixed(2)} (gera derating térmico pela proximidade)</td>
               </tr>
               <tr>
                 <td>Local das Proteções:</td>
@@ -557,31 +770,138 @@
           </div>
 
           <div>
-            <button type="button" class="scenario-details-btn" data-action="toggle-scenario-drawer" data-target="drawerB">
-              Ver Detalhes do Cenário B ▼
+            <button type="button" class="btn-details-toggle" data-action="toggle-scenario-drawer" data-target="drawerB">
+              🔍 Ver detalhes do cálculo do Cenário B ▼
             </button>
-            <div class="scenario-drawer" id="drawerB">
-              <p><strong>Vantagens Técnicas:</strong></p>
-              <ul style="padding-left: 16px; margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
-                ${comparison.scenarioBAdvantages.map(adv => `<li>${adv}</li>`).join('')}
-              </ul>
+            <div class="calc-details-drawer" id="drawerB">
+              <p><strong>Detalhamento dos Circuitos Terminais:</strong></p>
+              <table class="calc-details-table">
+                ${chargers.map(c => `
+                  <tr>
+                    <td>${c.name}:</td>
+                    <td>Cabo ${c.cableSection} mm² | Queda: ${c.voltageDropPercent}% | Disj. ${c.recommendedBreaker}A</td>
+                  </tr>
+                `).join('')}
+                <tr>
+                  <td>Coordenação por Circuito:</td>
+                  <td>IB (40A) ≤ In (40A) ≤ Iz (${chargers[0] ? chargers[0].correctedAmpacity : 40}A) ✓</td>
+                </tr>
+              </table>
+              <div style="margin-top: 8px;">
+                <strong>Vantagens Técnicas:</strong>
+                <ul style="padding-left: 16px; margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
+                  ${comparison.scenarioBAdvantages.map(adv => `<li>${adv}</li>`).join('')}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
       </div>
     `;
 
-    // Bind dos botões de gaveta de detalhes
+    // Bind dos botões de detalhes do cálculo
     container.querySelectorAll('[data-action="toggle-scenario-drawer"]').forEach(btn => {
       btn.addEventListener('click', function () {
         const targetId = this.dataset.target;
         const drawer = document.getElementById(targetId);
         if (drawer) {
           const isOpen = drawer.classList.toggle('is-open');
-          this.textContent = isOpen ? 'Ocultar Detalhes ▲' : (targetId === 'drawerA' ? 'Ver Detalhes do Cenário A ▼' : 'Ver Detalhes do Cenário B ▼');
+          this.textContent = isOpen 
+            ? '▲ Ocultar detalhes do cálculo' 
+            : (targetId === 'drawerA' ? '🔍 Ver detalhes do cálculo do Cenário A ▼' : '🔍 Ver detalhes do cálculo do Cenário B ▼');
         }
       });
     });
+  }
+
+  /**
+   * Renderiza a Área D: Adequações Necessárias, Lista de Materiais e Verificações
+   */
+  function renderTechAdaptationsSection(calcResult, diagnostic) {
+    const container = document.getElementById('techAdaptationsContainer');
+    if (!container) return;
+
+    const { chargers, scenarioA, input } = calcResult;
+
+    // Componentes necessários estimados (BOM)
+    const cableSection = scenarioA ? scenarioA.cableSection : (chargers[0] ? chargers[0].cableSection : 6);
+    const peSection = scenarioA ? scenarioA.peSection : (chargers[0] ? chargers[0].peSection : 6);
+    const estCableLength = Math.round(input.distance * 1.15); // +15% de folga técnica de instalação
+
+    const bomList = [
+      { item: `Cabo de Cobre ${cableSection} mm² (${input.cableInsulation} 750V/1kV)`, qty: `${estCableLength * (input.supplyType === 'trifasica' ? 4 : (input.supplyType === 'bifasica' ? 3 : 2))} metros`, note: 'Alimentador com folga' },
+      { item: `Condutor de Proteção PE ${peSection} mm² Verde/Amarelo`, qty: `${estCableLength} metros`, note: 'Aterramento NBR 5410' },
+      { item: `Interruptor DR 30mA Tipo A (6mA DC)`, qty: `${chargers.length} un.`, note: 'Proteção diferencial NBR 17019' },
+      { item: `Dispositivo DPS Classe II 20/40kA`, qty: input.supplyType === 'trifasica' ? '4 módulos' : (input.supplyType === 'bifasica' ? '3 módulos' : '2 módulos'), note: 'Proteção contra surtos' },
+      { item: `Eletrodutos ou Eletrocalhas Metálicas`, qty: `${input.distance} metros`, note: `${input.installationMethod === 'B1' ? 'Eletroduto rígido/flexível' : 'Eletrocalha aparente'}` }
+    ];
+
+    container.innerHTML = `
+      <!-- 1. PROBLEMAS E NÃO CONFORMIDADES -->
+      <div class="tech-adapt-block">
+        <h4 class="tech-adapt-block-title">
+          <span>⚠️</span> 1. Problemas e Riscos Identificados
+        </h4>
+        ${diagnostic.identifiedIssues.length > 0 ? `
+          <ul class="diag-bullet-list">
+            ${diagnostic.identifiedIssues.map(iss => `<li style="margin-bottom: 6px;">⚠️ ${escapeHtml(iss)}</li>`).join('')}
+          </ul>
+        ` : `
+          <p style="font-size: 13px; color: #15803D;">✓ Nenhum impedimento crítico ou risco elétrico detectado nos parâmetros inseridos.</p>
+        `}
+      </div>
+
+      <!-- 2. ADEQUAÇÕES PRIORIZADAS -->
+      <div class="tech-adapt-block">
+        <h4 class="tech-adapt-block-title">
+          <span>📋</span> 2. Adequações Técnicas Priorizadas
+        </h4>
+        ${diagnostic.requiredAdaptations.length > 0 ? `
+          <ol class="diag-ordered-list">
+            ${diagnostic.requiredAdaptations.map(ad => `
+              <li>
+                <span class="p-tag p-${ad.priority}">Prioridade ${ad.priority}</span>
+                ${escapeHtml(ad.action)}
+              </li>
+            `).join('')}
+          </ol>
+        ` : `
+          <p style="font-size: 13px; color: #15803D;">✓ Nenhuma adequação estrutural indispensável no momento.</p>
+        `}
+      </div>
+
+      <!-- 3. COMPONENTES POSSIVELMENTE NECESSÁRIOS (BOM ESTIMADO) -->
+      <div class="tech-adapt-block">
+        <h4 class="tech-adapt-block-title">
+          <span>📦</span> 3. Componentes e Materiais Necessários (Estimativa Preliminar)
+        </h4>
+        <div class="tech-bom-grid">
+          ${bomList.map(b => `
+            <div class="tech-bom-item">
+              <strong>${escapeHtml(b.item)}</strong>
+              <div style="font-size: 12px; color: var(--volt-green-dark); font-weight: 700;">${escapeHtml(b.qty)}</div>
+              <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(b.note)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- 4. VERIFICAÇÕES OBRIGATÓRIAS ANTES DA EXECUÇÃO -->
+      <div class="tech-adapt-block" style="margin-bottom: 0;">
+        <h4 class="tech-adapt-block-title">
+          <span>🔍</span> 4. Verificações Obrigatórias em Visita Técnica
+        </h4>
+        <div class="verification-list-box">
+          <strong>Antes de energizar ou iniciar a passagem de cabos:</strong>
+          <ul>
+            <li>Medir com alicate amperímetro a corrente de pico simultânea nas fases nos horários de maior demanda (18h às 22h).</li>
+            <li>Realizar teste instrumental de resistência de aterramento e continuidade do condutor PE até o ponto pretendido.</li>
+            <li>Inspecionar visualmente o estado dos bornes do disjuntor geral da concessionária para identificar sinais de aquecimento.</li>
+            <li>Confirmar com a concessionária de energia o limite de demanda contratada da unidade consumidora.</li>
+          </ul>
+        </div>
+      </div>
+    `;
   }
 
   /**
@@ -837,7 +1157,9 @@
       }
     }
 
-    if (stepNum === 2) {
+    if (stepNum === 1) {
+      renderStep1VoltageOptions(inspectionState.localData.supplyType, inspectionState.localData.voltagePreset);
+    } else if (stepNum === 2) {
       renderPhotosGrid();
     } else if (stepNum === 3) {
       renderConfirmationCards();
@@ -1245,15 +1567,270 @@
     }
   }
 
+  /**
+   * Renderiza dinamicamente as opções de tensão elétrica compatíveis com a alimentação selecionada
+   */
+  function renderStep1VoltageOptions(supplyType = 'bifasica', currentPreset = '127_220') {
+    const container = document.getElementById('inspVoltageOptionsContainer');
+    const customBox = document.getElementById('inspCustomVoltageBox');
+    const unknownHint = document.getElementById('inspVoltageUnknownHint');
+    if (!container) return;
+
+    let options = [];
+    if (supplyType === 'monofasica') {
+      options = [
+        { id: '127_mono', label: '127 V', sub: 'Fase + Neutro (Padrão 127V)', desc: '127V F-N' },
+        { id: '220_mono', label: '220 V', sub: 'Fase + Neutro (Padrão 220V)', desc: '220V F-N' },
+        { id: 'custom', label: 'Outra', sub: 'Digitar valores manuais', desc: 'Personalizada' },
+        { id: 'nao_sei', label: '❓ Não sei', sub: 'Investigar via fotos no Passo 2', desc: 'Pendente' }
+      ];
+      if (!['127_mono', '220_mono', 'custom', 'nao_sei'].includes(currentPreset)) {
+        currentPreset = '220_mono';
+      }
+    } else if (supplyType === 'bifasica') {
+      options = [
+        { id: '127_220', label: '127 / 220 V (Padrão Sugerido)', sub: 'Mais comum no Brasil (F-N: 127V | F-F: 220V)', desc: 'Recomendado' },
+        { id: '220_380', label: '220 / 380 V', sub: 'F-N: 220V | F-F: 380V (Algumas concessionárias)', desc: 'Rede 380V' },
+        { id: '220_mono', label: '220 V (Bifásico Puro)', sub: 'Fase-Fase 220V sem neutro', desc: '220V F-F' },
+        { id: 'custom', label: 'Outra', sub: 'Digitar valores manuais', desc: 'Personalizada' },
+        { id: 'nao_sei', label: '❓ Não sei', sub: 'Investigar via fotos no Passo 2', desc: 'Pendente' }
+      ];
+      if (!['127_220', '220_380', '220_mono', 'custom', 'nao_sei'].includes(currentPreset)) {
+        currentPreset = '127_220';
+      }
+    } else if (supplyType === 'trifasica') {
+      options = [
+        { id: '127_220', label: '127 / 220 V', sub: 'Trifásico com 127V F-N e 220V F-F', desc: 'Rede 220V Trifásica' },
+        { id: '220_380', label: '220 / 380 V (Padrão Comercial)', sub: 'Trifásico com 220V F-N e 380V F-F', desc: 'Rede 380V Trifásica' },
+        { id: 'custom', label: 'Outra', sub: 'Digitar valores manuais', desc: 'Personalizada' },
+        { id: 'nao_sei', label: '❓ Não sei', sub: 'Investigar via fotos no Passo 2', desc: 'Pendente' }
+      ];
+      if (!['127_220', '220_380', 'custom', 'nao_sei'].includes(currentPreset)) {
+        currentPreset = '220_380';
+      }
+    } else { // nao_sei
+      options = [
+        { id: '127_220', label: '127 / 220 V (Mais Provável)', sub: 'Padrão residencial predominante', desc: 'Sugestão inicial' },
+        { id: '220_380', label: '220 / 380 V', sub: 'Redes comerciais ou certas regiões', desc: 'Sugestão inicial' },
+        { id: 'nao_sei', label: '❓ Totalmente Desconhecido', sub: 'Identificar nas fotos do Passo 2', desc: 'Pendente' }
+      ];
+      if (!['127_220', '220_380', 'nao_sei'].includes(currentPreset)) {
+        currentPreset = '127_220';
+      }
+    }
+
+    inspectionState.localData.voltagePreset = currentPreset;
+
+    container.innerHTML = options.map(opt => `
+      <button type="button" class="voltage-pill-btn ${opt.id === currentPreset ? 'active' : ''}" data-val="${opt.id}">
+        <span class="v-pill-val">${escapeHtml(opt.label)}</span>
+        <span class="v-pill-sub">${escapeHtml(opt.sub)}</span>
+      </button>
+    `).join('');
+
+    if (customBox) {
+      customBox.style.display = currentPreset === 'custom' ? 'grid' : 'none';
+    }
+    if (unknownHint) {
+      unknownHint.style.display = (currentPreset === 'nao_sei' || supplyType === 'nao_sei') ? 'block' : 'none';
+    }
+
+    container.querySelectorAll('.voltage-pill-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        container.querySelectorAll('.voltage-pill-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const val = this.dataset.val;
+        inspectionState.localData.voltagePreset = val;
+        if (customBox) customBox.style.display = val === 'custom' ? 'grid' : 'none';
+        if (unknownHint) unknownHint.style.display = (val === 'nao_sei' || supplyType === 'nao_sei') ? 'block' : 'none';
+        saveInspectionToLocalStorage();
+        syncVistoriaToTechnical('voltagePreset', val);
+      });
+    });
+  }
+
+  /**
+   * Sincroniza dados da Vistoria Guiada para a Análise Técnica em tempo real
+   */
+  function syncVistoriaToTechnical(field, value) {
+    const loc = inspectionState.localData;
+
+    if (field === 'supplyType') {
+      if (value === 'nao_sei') {
+        state.supplyType = 'bifasica';
+        state.supplyTypeStatus = 'nao_confirmado';
+      } else if (value === 'bifasica') {
+        state.supplyType = 'bifasica';
+        state.supplyTypeStatus = 'sugerido';
+      } else {
+        state.supplyType = value;
+        state.supplyTypeStatus = 'confirmado';
+      }
+      document.querySelectorAll('input[name="supplyType"]').forEach(r => {
+        r.checked = (r.value === state.supplyType);
+      });
+      state.chargers.forEach(ch => {
+        if (state.supplyType === 'monofasica') ch.phaseConfig = 'L1-N';
+        else if (state.supplyType === 'bifasica' && ch.phaseConfig === '3F') ch.phaseConfig = 'L1-L2';
+      });
+      renderStep1VoltageOptions(value, loc.voltagePreset);
+      renderChargersList();
+    } else if (field === 'voltagePreset') {
+      if (value === 'nao_sei') {
+        state.voltagePreset = '127_220';
+        state.voltageStatus = 'nao_confirmado';
+      } else if (value === 'custom') {
+        state.voltagePreset = 'custom';
+        state.voltageStatus = 'confirmado';
+      } else {
+        state.voltagePreset = value;
+        state.voltageStatus = 'confirmado';
+      }
+      const sel = document.getElementById('voltagePreset');
+      if (sel) {
+        let optFound = false;
+        for (let i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === value) {
+            sel.selectedIndex = i;
+            optFound = true;
+            break;
+          }
+        }
+        if (!optFound && value !== 'nao_sei') {
+          sel.value = value;
+        }
+      }
+    } else if (field === 'vehicleCount') {
+      const count = parseInt(value, 10) || 1;
+      const isTomada = loc.chargerType === 'tomada';
+      const current = isTomada ? 16 : 32;
+      state.chargers = [];
+      for (let i = 1; i <= count; i++) {
+        state.chargers.push({
+          id: i,
+          name: isTomada ? `Ponto Especial ${i}` : `Wallbox Vaga ${i}`,
+          nominalCurrent: current,
+          enabled: true,
+          phaseConfig: state.supplyType === 'monofasica' ? 'L1-N' : (state.supplyType === 'bifasica' ? 'L1-L2' : '3F')
+        });
+      }
+      renderChargersList();
+    } else if (field === 'chargerType') {
+      const isTomada = value === 'tomada';
+      const current = isTomada ? 16 : 32;
+      state.chargers.forEach((c, idx) => {
+        c.nominalCurrent = current;
+        c.name = isTomada ? `Ponto Especial ${idx + 1}` : `Wallbox Vaga ${idx + 1}`;
+      });
+      renderChargersList();
+    } else if (field === 'distanceApprox') {
+      let d = 20;
+      if (value === '<10') d = 8;
+      else if (value === '10-25') d = 20;
+      else if (value === '25-50') d = 35;
+      else if (value === '>50') d = 60;
+      state.distance = d;
+      state.distanceStatus = 'sugerido';
+      const distInput = document.getElementById('inputDistance');
+      if (distInput) distInput.value = d;
+    }
+
+    recalculateAndRender();
+  }
+
+  /**
+   * Sincroniza dados da Análise Técnica de volta para a Vistoria Guiada
+   */
+  function syncTechnicalToVistoria(field, value) {
+    const loc = inspectionState.localData;
+    const conf = inspectionState.confirmations;
+
+    if (field === 'supplyType') {
+      loc.supplyType = value;
+      state.supplyTypeStatus = 'confirmado';
+      document.querySelectorAll('input[name="inspSupplyType"]').forEach(r => {
+        r.checked = (r.value === value);
+      });
+      renderStep1VoltageOptions(value, loc.voltagePreset);
+    } else if (field === 'voltagePreset') {
+      loc.voltagePreset = value;
+      state.voltageStatus = 'confirmado';
+      renderStep1VoltageOptions(loc.supplyType, value);
+    } else if (field === 'distance') {
+      const d = parseFloat(value) || 20;
+      state.distanceStatus = 'confirmado';
+      let approx = '10-25';
+      if (d < 10) approx = '<10';
+      else if (d <= 25) approx = '10-25';
+      else if (d <= 50) approx = '25-50';
+      else approx = '>50';
+      loc.distanceApprox = approx;
+      document.querySelectorAll('input[name="inspDistanceApprox"]').forEach(r => {
+        r.checked = (r.value === approx);
+      });
+    } else if (field === 'mainBreaker') {
+      const b = parseFloat(value);
+      if (b > 0) {
+        conf.mainBreakerConfirmed = String(b);
+      } else {
+        conf.mainBreakerConfirmed = 'nao_sei';
+      }
+    } else if (field === 'chargers') {
+      const count = state.chargers.length;
+      if (count >= 1 && count <= 4) {
+        loc.vehicleCount = String(count);
+        document.querySelectorAll('input[name="inspVehicleCount"]').forEach(r => {
+          r.checked = (r.value === String(count));
+        });
+      }
+    }
+
+    saveInspectionToLocalStorage();
+  }
+
   function syncInspectionToAdvancedEngine() {
     const loc = inspectionState.localData;
     const conf = inspectionState.confirmations;
+
+    // Tipo de alimentação e status
+    if (loc.supplyType === 'nao_sei') {
+      state.supplyType = 'bifasica';
+      state.supplyTypeStatus = 'nao_confirmado';
+    } else if (loc.supplyType === 'bifasica') {
+      state.supplyType = 'bifasica';
+      state.supplyTypeStatus = 'sugerido';
+    } else {
+      state.supplyType = loc.supplyType || 'bifasica';
+      state.supplyTypeStatus = 'confirmado';
+    }
+    document.querySelectorAll('input[name="supplyType"]').forEach(r => {
+      r.checked = (r.value === state.supplyType);
+    });
+
+    // Tensão
+    if (loc.voltagePreset === 'nao_sei') {
+      state.voltagePreset = '127_220';
+      state.voltageStatus = 'nao_confirmado';
+    } else if (loc.voltagePreset === 'custom') {
+      state.voltagePreset = 'custom';
+      state.voltageStatus = 'confirmado';
+      state.voltagePhaseNeutral = parseFloat(loc.customVfn) || 127;
+      state.voltagePhasePhase = parseFloat(loc.customVff) || 220;
+    } else {
+      state.voltagePreset = loc.voltagePreset || '127_220';
+      state.voltageStatus = 'confirmado';
+    }
+    const selV = document.getElementById('voltagePreset');
+    if (selV && state.voltagePreset) selV.value = state.voltagePreset;
 
     // Distância
     if (loc.distanceApprox === '<10') state.distance = 8;
     else if (loc.distanceApprox === '10-25') state.distance = 20;
     else if (loc.distanceApprox === '25-50') state.distance = 35;
     else if (loc.distanceApprox === '>50') state.distance = 60;
+    state.distanceStatus = 'sugerido';
+    const distInput = document.getElementById('inputDistance');
+    if (distInput) distInput.value = state.distance;
 
     // Disjuntor geral
     if (conf.mainBreakerConfirmed && conf.mainBreakerConfirmed !== 'nao_sei') {
@@ -1261,7 +1838,14 @@
       if (bNum > 0) {
         state.mainBreakerKnown = true;
         state.mainBreaker = bNum;
+        const mbInput = document.getElementById('inputMainBreaker');
+        if (mbInput) mbInput.value = bNum;
       }
+    } else {
+      state.mainBreakerKnown = false;
+      state.mainBreaker = null;
+      const mbInput = document.getElementById('inputMainBreaker');
+      if (mbInput) mbInput.value = '';
     }
 
     // Carregadores
@@ -1280,6 +1864,8 @@
       });
     }
 
+    renderChargersList();
+    recalculateAndRender();
     switchAppMode('avancado');
     showToast('⚙️ Dados da vistoria integrados ao motor elétrico de engenharia!');
   }
@@ -1305,6 +1891,9 @@
     renderConfirmationCards,
     evaluateAndRenderInspectionDiagnostic,
     analyzePhotosWithAI,
+    renderStep1VoltageOptions,
+    syncVistoriaToTechnical,
+    syncTechnicalToVistoria,
     syncInspectionToAdvancedEngine
   };
 }));

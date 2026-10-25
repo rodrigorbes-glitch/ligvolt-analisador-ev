@@ -166,9 +166,93 @@
             </div>
           </div>
 
-          <!-- Pergunta 3: Quantidade de Veículos Simultâneos -->
+          <!-- Pergunta 3: Tipo de Alimentação Elétrica -->
           <div class="wizard-question-box">
-            <h3 class="wizard-question-title">⚡ 3. Quantos veículos serão carregados ao mesmo tempo?</h3>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
+              <div>
+                <h3 class="wizard-question-title">⚡ 3. Qual o tipo de alimentação elétrica disponível no local?</h3>
+                <p class="wizard-question-subtitle">Selecione o fornecimento da concessionária. A opção Bifásica inicia selecionada como sugestão operacional padrão da Ligvolt.</p>
+              </div>
+              <span class="badge-status-suggested" id="supplyTypeBadgeStatus" title="Identificado como sugestão prévia operacional; confirme ou altere conforme o local">
+                ⚡ Sugestão Padrão Ligvolt (Editável)
+              </span>
+            </div>
+            <div class="visual-tiles-grid" id="inspSupplyTypeGrid">
+              <label class="visual-tile-item">
+                <input type="radio" name="inspSupplyType" value="monofasica" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🔌</span>
+                  <span class="tile-title">Monofásica</span>
+                  <span class="tile-sub">1 Fase + Neutro</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspSupplyType" value="bifasica" class="visual-tile-input" checked />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">⚡⚡</span>
+                  <span class="tile-title">Bifásica</span>
+                  <span class="tile-sub">2 Fases (+ Neutro)</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspSupplyType" value="trifasica" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">⚡⚡⚡</span>
+                  <span class="tile-title">Trifásica</span>
+                  <span class="tile-sub">3 Fases + Neutro</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspSupplyType" value="nao_sei" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">❓</span>
+                  <span class="tile-title">Não sei</span>
+                  <span class="tile-sub">Identificar por foto</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Pergunta 4: Tensão Elétrica Disponível (Dinâmica / Compatível) -->
+          <div class="wizard-question-box" id="wizardVoltageQuestionBox">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
+              <div>
+                <h3 class="wizard-question-title">🔌 4. Qual a tensão elétrica disponível?</h3>
+                <p class="wizard-question-subtitle" id="voltageSubtitleHint">Opções de tensão compatíveis com a alimentação selecionada:</p>
+              </div>
+              <span class="badge-status-suggested" id="voltageBadgeStatus" title="Tensão sugerida com base no padrão operacional ou na seleção">
+                ⚡ Sugestão Operacional
+              </span>
+            </div>
+            
+            <!-- Opções rápidas dinâmicas -->
+            <div class="voltage-options-pill-grid" id="inspVoltageOptionsContainer">
+              <!-- Renderizado dinamicamente via UI Controller -->
+            </div>
+
+            <!-- Campos de Tensão Personalizada (quando selecionado Outra) -->
+            <div id="inspCustomVoltageBox" style="display: none; margin-top: 12px; background: #F8FAFC; border: 1px solid var(--border-subtle); padding: 12px 16px; border-radius: var(--radius-sm);">
+              <div class="form-grid-2">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="inspInputVoltageFN">Tensão Fase-Neutro (V)</label>
+                  <input type="number" id="inspInputVoltageFN" class="form-control" placeholder="Ex: 127" value="127" />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="inspInputVoltageFF">Tensão Fase-Fase (V)</label>
+                  <input type="number" id="inspInputVoltageFF" class="form-control" placeholder="Ex: 220" value="220" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Dica se "Não sei" for selecionado -->
+            <div id="inspVoltageUnknownHint" style="display: none; margin-top: 10px; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 12.5px; color: #1E40AF;">
+              📸 <strong>Não tem certeza da tensão?</strong> Sem problemas! Na próxima etapa, você poderá fotografar o padrão de entrada ou a etiqueta do quadro para a IA analisar. A informação ficará registrada como <em>"Pendente de confirmação técnica"</em>.
+            </div>
+          </div>
+
+          <!-- Pergunta 5: Quantidade de Veículos Simultâneos -->
+          <div class="wizard-question-box">
+            <h3 class="wizard-question-title">⚡ 5. Quantos veículos serão carregados ao mesmo tempo?</h3>
             <p class="wizard-question-subtitle">De 1 a 4 veículos simultâneos.</p>
             <div class="visual-tiles-grid">
               <label class="visual-tile-item">
@@ -206,9 +290,9 @@
             </div>
           </div>
 
-          <!-- Pergunta 4: Tipo de Carregador Pretendido -->
+          <!-- Pergunta 6: Tipo de Carregador Pretendido -->
           <div class="wizard-question-box">
-            <h3 class="wizard-question-title">🔌 4. Qual o tipo de carregador pretendido?</h3>
+            <h3 class="wizard-question-title">🔌 6. Qual o tipo de carregador pretendido?</h3>
             <p class="wizard-question-subtitle">O Wallbox é mais rápido (32A); a tomada convencional/industrial é mais lenta (16A).</p>
             <div class="visual-tiles-grid">
               <label class="visual-tile-item">
@@ -238,9 +322,9 @@
             </div>
           </div>
 
-          <!-- Pergunta 5: Distância Aproximada -->
+          <!-- Pergunta 7: Distância Aproximada -->
           <div class="wizard-question-box">
-            <h3 class="wizard-question-title">📏 5. Qual a distância aproximada do quadro elétrico até a vaga?</h3>
+            <h3 class="wizard-question-title">📏 7. Qual a distância aproximada do quadro elétrico até a vaga?</h3>
             <p class="wizard-question-subtitle">Importante para calcular a queda de tensão e a espessura dos cabos.</p>
             <div class="visual-tiles-grid">
               <label class="visual-tile-item">
@@ -286,9 +370,9 @@
             </div>
           </div>
 
-          <!-- Pergunta 6: Cidade e Estado -->
+          <!-- Pergunta 8: Cidade e Estado -->
           <div class="wizard-question-box">
-            <h3 class="wizard-question-title">🏙️ 6. Qual a cidade e estado da instalação?</h3>
+            <h3 class="wizard-question-title">🏙️ 8. Qual a cidade e estado da instalação?</h3>
             <p class="wizard-question-subtitle">Necessário para identificar normas locais do Corpo de Bombeiros (ex: CBMERJ no RJ) e concessionária.</p>
             <div style="display: flex; gap: 10px; max-width: 480px; align-items: center;">
               <input type="text" id="inspCityStateInput" class="form-input" placeholder="Ex: Rio de Janeiro - RJ ou São Paulo - SP" value="São Paulo - SP" />
@@ -473,249 +557,283 @@
         </button>
       </nav>
 
-      <!-- ABA 1: DIMENSIONAMENTO ELÉTRICO -->
+      <!-- ABA 1: ANÁLISE TÉCNICA E DIMENSIONAMENTO ELÉTRICO -->
       <main id="tab-dimensionamento" class="tab-pane active" role="tabpanel">
 
-      <!-- PRESETS RÁPIDOS DE INSTALAÇÃO -->
-      <div class="presets-bar">
-        <span class="presets-label">⚡ Preenchimento Rápido:</span>
-        <button type="button" class="preset-chip" data-quick-preset="res-mono-32">Residencial 1x 32A (7,4 kW)</button>
-        <button type="button" class="preset-chip" data-quick-preset="condo-2x32">Condomínio 2x 32A (22 kW)</button>
-        <button type="button" class="preset-chip" data-quick-preset="comercial-4x32">Comercial 4x 32A Balanceado</button>
-      </div>
-
-      <!-- SEÇÃO 1: REDE E FORNECIMENTO -->
-      <section class="card-panel" id="section-rede">
-        <div class="panel-header">
-          <h2 class="panel-title">
-            <span class="panel-title-badge">1</span>
-            Rede e Fornecimento de Energia
-          </h2>
-          <span class="form-hint">Padrão de entrada da edificação e quadro geral</span>
+        <!-- PRESETS RÁPIDOS DE INSTALAÇÃO -->
+        <div class="presets-bar">
+          <span class="presets-label">⚡ Cenários Rápidos:</span>
+          <button type="button" class="preset-chip" data-quick-preset="bifasica-padrao">⚡ Bifásico Ligvolt (1x 32A • 220V)</button>
+          <button type="button" class="preset-chip" data-quick-preset="res-mono-32">Residencial 1x 32A (220V)</button>
+          <button type="button" class="preset-chip" data-quick-preset="condo-2x32">Condomínio Trifásico 2x 32A</button>
+          <button type="button" class="preset-chip" data-quick-preset="comercial-4x32">Comercial 4x 32A Balanceado</button>
         </div>
 
-        <div class="form-grid-3">
-          <!-- Tipo de Fornecimento (Segmented Buttons) -->
-          <div class="form-group">
-            <label class="form-label">Tipo de Alimentação</label>
-            <div class="segmented-control">
-              <div class="segmented-option">
-                <input type="radio" id="supMono" name="supplyType" value="monofasica" />
-                <label for="supMono" class="segmented-label">Monofásica</label>
-              </div>
-              <div class="segmented-option">
-                <input type="radio" id="supBi" name="supplyType" value="bifasica" />
-                <label for="supBi" class="segmented-label">Bifásica</label>
-              </div>
-              <div class="segmented-option">
-                <input type="radio" id="supTri" name="supplyType" value="trifasica" checked />
-                <label for="supTri" class="segmented-label">Trifásica</label>
-              </div>
-            </div>
+        <!-- ================================================================
+             ÁREA A: RESUMO DA INSTALAÇÃO (4 CARTÕES COMPACTOS NO TOPO)
+             ================================================================ -->
+        <section class="tech-area-container" id="techAreaSummary">
+          <div class="tech-summary-grid" id="techSummaryGrid">
+            <!-- 4 Cartões Compactos Renderizados Dinamicamente:
+                 1. Alimentação e Tensão (com indicador visual Confirmado / Sugestão / Pendente)
+                 2. Quantidade e Potência dos Carregadores
+                 3. Distância do Quadro até os Pontos
+                 4. Situação Preliminar da Capacidade Elétrica -->
+          </div>
+        </section>
+
+        <!-- ================================================================
+             ÁREA B: DADOS ELÉTRICOS (PARÂMETROS ESSENCIAIS + CONFIG. AVANÇADAS)
+             ================================================================ -->
+        <section class="card-panel" id="techAreaElectricalData">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <span class="panel-title-badge">B</span>
+              Dados Elétricos da Instalação
+            </h2>
+            <span class="form-hint">Fornecimento de energia, medição, carregadores e distância</span>
           </div>
 
-          <!-- Tensão Nominal -->
-          <div class="form-group">
-            <label class="form-label" for="voltagePreset">Tensão da Instalação</label>
-            <select id="voltagePreset" class="form-control">
-              <option value="220_380" selected>220V / 380V (Fase-Neutro: 220V, F-F: 380V)</option>
-              <option value="127_220">127V / 220V (Fase-Neutro: 127V, F-F: 220V)</option>
-              <option value="custom">Tensão Personalizada</option>
-            </select>
-          </div>
-
-          <!-- Disjuntor Geral Existente -->
-          <div class="form-group">
-            <label class="form-label" for="inputMainBreaker">
-              Disjuntor Geral Existente
-              <span class="form-hint">Capacidade nominal</span>
-            </label>
-            <input type="number" id="inputMainBreaker" class="form-control" min="10" max="1000" value="100" placeholder="Ex: 100A" />
-            <label class="checkbox-inline">
-              <input type="checkbox" id="chkMainBreakerUnknown" />
-              <span>Pendente de verificação no padrão de entrada</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Campos de Tensão Personalizada (quando selecionado custom) -->
-        <div id="customVoltageContainer" class="form-grid-2" style="display: none; margin-top: 14px;">
-          <div class="form-group">
-            <label class="form-label" for="inputVoltageFN">Tensão Fase-Neutro (V)</label>
-            <input type="number" id="inputVoltageFN" class="form-control" value="220" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="inputVoltageFF">Tensão Fase-Fase (V)</label>
-            <input type="number" id="inputVoltageFF" class="form-control" value="380" />
-          </div>
-        </div>
-
-        <!-- Demanda Atual Existente -->
-        <div style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-subtle);">
-          <div class="form-group">
-            <label class="form-label">
-              Demanda Elétrica Existente
-              <span class="form-hint">Consumo das cargas prediais atuais</span>
-            </label>
-            <div id="demandModeBox" class="form-grid-2" style="margin-bottom: 8px;">
-              <select id="selectDemandMode" class="form-control">
-                <option value="per_phase" selected>Informar por Fase (L1, L2, L3 em Ampères)</option>
-                <option value="total">Informar Valor Total</option>
-              </select>
-              <select id="selectDemandUnit" class="form-control">
-                <option value="A" selected>Unidade: Ampères (A)</option>
-                <option value="kVA">Unidade: Potência (kVA)</option>
-              </select>
-            </div>
-
-            <div id="demandTotalBox" style="display: none;">
-              <input type="number" id="inputDemandTotal" class="form-control" placeholder="Demanda total existente" value="40" />
-            </div>
-
-            <div id="demandPhaseBox" class="form-grid-3">
-              <input type="number" id="inputDemandL1" class="form-control" placeholder="Fase A (A)" value="30" title="Demanda na Fase A" />
-              <input type="number" id="inputDemandL2" class="form-control" placeholder="Fase B (A)" value="25" title="Demanda na Fase B" />
-              <input type="number" id="inputDemandL3" class="form-control" placeholder="Fase C (A)" value="20" title="Demanda na Fase C" />
-            </div>
-
-            <label class="checkbox-inline">
-              <input type="checkbox" id="chkDemandUnknown" />
-              <span>Demanda existente não medida / pendente de medição</span>
-            </label>
-          </div>
-        </div>
-      </section>
-
-      <!-- SEÇÃO 2: PONTOS DE RECARGA -->
-      <section class="card-panel" id="section-carregadores">
-        <div class="panel-header">
-          <h2 class="panel-title">
-            <span class="panel-title-badge">2</span>
-            Pontos de Recarga de Veículos Elétricos
-          </h2>
-          <button type="button" id="btnAddCharger" class="btn-ghost" style="color: var(--volt-green-dark); border-color: var(--volt-green-dark);">
-            + Adicionar Carregador
-          </button>
-        </div>
-
-        <div id="chargersContainer" class="chargers-container">
-          <!-- Renderizado dinamicamente via UI Controller em cards compactos -->
-        </div>
-      </section>
-
-      <!-- SEÇÃO 3: PARÂMETROS DE INSTALAÇÃO & CABOS -->
-      <section class="card-panel" id="section-instalacao">
-        <div class="panel-header">
-          <h2 class="panel-title">
-            <span class="panel-title-badge">3</span>
-            Parâmetros de Instalação e Condutores
-          </h2>
-          <span class="form-hint">Critérios ABNT NBR 5410 e NBR 17019</span>
-        </div>
-
-        <div class="form-grid-3">
-          <!-- Distância -->
-          <div class="form-group">
-            <label class="form-label" for="inputDistance">
-              Distância do Quadro (metros)
-              <span class="form-hint">Trecho do alimentador</span>
-            </label>
-            <input type="number" id="inputDistance" class="form-control" min="1" max="500" value="25" step="1" />
-          </div>
-
-          <!-- Método de Instalação -->
-          <div class="form-group">
-            <label class="form-label" for="selectInstallMethod">Método de Instalação</label>
-            <select id="selectInstallMethod" class="form-control">
-              <option value="B1" selected>Método B1: Eletroduto embutido ou sobre parede</option>
-              <option value="B2">Método B2: Cabo multipolar em eletroduto</option>
-              <option value="C">Método C: Fixado diretamente em alvenaria</option>
-              <option value="F">Método F: Bandeja perfurada / Eletrocalha / Leito</option>
-            </select>
-          </div>
-
-          <!-- Condutor e Isolação -->
-          <div class="form-group">
-            <label class="form-label" for="selectCableInsulation">Condutor & Isolação</label>
-            <select id="selectCableInsulation" class="form-control">
-              <option value="PVC" selected>Cobre com Isolação PVC (70°C)</option>
-              <option value="XLPE">Cobre com Isolação XLPE / HEPR (90°C)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Acordeão: Configurações Avançadas -->
-        <button type="button" class="accordion-toggle-btn" id="btnToggleAdvanced">
-          <span>⚙️ Configurações Avançadas (Agrupamento, Temperatura e Margem)</span>
-          <span id="accordionArrow">▼</span>
-        </button>
-
-        <div class="accordion-content" id="accordionAdvancedContent">
+          <!-- Grid dos Parâmetros Primários -->
           <div class="form-grid-3">
-            <!-- Circuitos Agrupados -->
+            <!-- Tipo de Alimentação (Segmented Buttons) -->
             <div class="form-group">
-              <label class="form-label" for="selectGrouping">
-                Circuitos Agrupados
-                <span class="form-hint">Mesmo eletroduto/feixe</span>
-              </label>
-              <select id="selectGrouping" class="form-control">
-                <option value="1" selected>1 circuito exclusivo (Fator: 1,00)</option>
-                <option value="2">2 circuitos agrupados (Fator: 0,80)</option>
-                <option value="3">3 circuitos agrupados (Fator: 0,70)</option>
-                <option value="4">4 circuitos agrupados (Fator: 0,65)</option>
-                <option value="5">5 circuitos agrupados (Fator: 0,60)</option>
-                <option value="6">6 circuitos agrupados (Fator: 0,57)</option>
+              <label class="form-label">Tipo de Alimentação</label>
+              <div class="segmented-control">
+                <div class="segmented-option">
+                  <input type="radio" id="supMono" name="supplyType" value="monofasica" />
+                  <label for="supMono" class="segmented-label">Monofásica</label>
+                </div>
+                <div class="segmented-option">
+                  <input type="radio" id="supBi" name="supplyType" value="bifasica" checked />
+                  <label for="supBi" class="segmented-label">Bifásica</label>
+                </div>
+                <div class="segmented-option">
+                  <input type="radio" id="supTri" name="supplyType" value="trifasica" />
+                  <label for="supTri" class="segmented-label">Trifásica</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tensão Nominal Adaptativa -->
+            <div class="form-group">
+              <label class="form-label" for="voltagePreset">Tensão da Instalação</label>
+              <select id="voltagePreset" class="form-control">
+                <option value="127_220" selected>127V / 220V (Fase-Neutro: 127V, F-F: 220V)</option>
+                <option value="220_mono">220V (Fase-Fase sem neutro / Mono 220V)</option>
+                <option value="220_380">220V / 380V (Fase-Neutro: 220V, F-F: 380V)</option>
+                <option value="custom">Tensão Personalizada...</option>
               </select>
             </div>
 
-            <!-- Temperatura Ambiente -->
+            <!-- Disjuntor Geral Existente -->
             <div class="form-group">
-              <label class="form-label" for="selectAmbientTemp">Temperatura Ambiente</label>
-              <select id="selectAmbientTemp" class="form-control">
-                <option value="25">25°C (Ambiente refrigerado)</option>
-                <option value="30" selected>30°C (Referência padrão NBR 5410)</option>
-                <option value="35">35°C (Garagem quente / Área externa)</option>
-                <option value="40">40°C (Ambiente confinado / Exposição solar)</option>
-              </select>
-            </div>
-
-            <!-- Limite de Queda de Tensão -->
-            <div class="form-group">
-              <label class="form-label" for="inputMaxDrop">
-                Limite de Queda de Tensão (%)
-                <span class="form-hint">Máx. NBR 5410: 4% terminal</span>
+              <label class="form-label" for="inputMainBreaker">
+                Disjuntor Geral Existente
+                <span class="form-hint">Capacidade nominal da entrada</span>
               </label>
-              <input type="number" id="inputMaxDrop" class="form-control" min="1.0" max="7.0" step="0.5" value="4.0" />
+              <input type="number" id="inputMainBreaker" class="form-control" min="10" max="1000" value="50" placeholder="Ex: 50A ou 63A" />
+              <label class="checkbox-inline">
+                <input type="checkbox" id="chkMainBreakerUnknown" />
+                <span>Pendente de verificação no padrão de entrada</span>
+              </label>
             </div>
           </div>
 
-          <div style="margin-top: 12px;">
-            <label class="checkbox-inline">
-              <input type="checkbox" id="chkContinuousMargin" checked />
-              <span><strong>Aplicar margem de 125% na corrente de projeto:</strong> critério conservador recomendado para operação contínua de recarga prolongada (> 3 horas).</span>
-            </label>
+          <!-- Campos de Tensão Personalizada (quando selecionado custom) -->
+          <div id="customVoltageContainer" class="form-grid-2" style="display: none; margin-top: 14px; background: #F8FAFC; border: 1px solid var(--border-subtle); padding: 12px 16px; border-radius: var(--radius-sm);">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="inputVoltageFN">Tensão Fase-Neutro (V)</label>
+              <input type="number" id="inputVoltageFN" class="form-control" value="127" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="inputVoltageFF">Tensão Fase-Fase (V)</label>
+              <input type="number" id="inputVoltageFF" class="form-control" value="220" />
+            </div>
           </div>
-        </div>
-      </section>
 
-      <!-- SEÇÃO 4: RESULTADOS & COMPARATIVO DOS CENÁRIOS -->
-      <section class="card-panel" id="section-resultados">
-        <div class="panel-header">
-          <h2 class="panel-title">
-            <span class="panel-title-badge">4</span>
-            Resultados do Dimensionamento & Topologias
-          </h2>
-        </div>
+          <!-- Demanda Atual Existente e Distância -->
+          <div class="form-grid-2" style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-subtle);">
+            <!-- Demanda Existente -->
+            <div class="form-group">
+              <label class="form-label">
+                Demanda Elétrica Existente
+                <span class="form-hint">Consumo das cargas prediais atuais</span>
+              </label>
+              <div id="demandModeBox" class="form-grid-2" style="margin-bottom: 8px;">
+                <select id="selectDemandMode" class="form-control">
+                  <option value="per_phase" selected>Informar por Fase (Ampères)</option>
+                  <option value="total">Informar Valor Total</option>
+                </select>
+                <select id="selectDemandUnit" class="form-control">
+                  <option value="A" selected>Unidade: Ampères (A)</option>
+                  <option value="kVA">Unidade: Potência (kVA)</option>
+                </select>
+              </div>
 
-        <div id="sizingSummaryContainer">
-          <!-- Renderizado dinamicamente via UI Controller -->
-        </div>
+              <div id="demandTotalBox" style="display: none;">
+                <input type="number" id="inputDemandTotal" class="form-control" placeholder="Demanda total existente" value="20" />
+              </div>
 
-        <div id="scenariosComparisonContainer" style="margin-top: 20px;">
-          <!-- Comparativo Cenário A vs Cenário B renderizado dinamicamente -->
-        </div>
-      </section>
-    </main>
+              <div id="demandPhaseBox" class="form-grid-3">
+                <input type="number" id="inputDemandL1" class="form-control" placeholder="Fase A (A)" value="15" title="Demanda na Fase A" />
+                <input type="number" id="inputDemandL2" class="form-control" placeholder="Fase B (A)" value="15" title="Demanda na Fase B" />
+                <input type="number" id="inputDemandL3" class="form-control" placeholder="Fase C (A)" value="0" title="Demanda na Fase C (se trifásico)" />
+              </div>
+
+              <label class="checkbox-inline">
+                <input type="checkbox" id="chkDemandUnknown" />
+                <span>Demanda existente não medida / pendente de medição</span>
+              </label>
+            </div>
+
+            <!-- Distância do Quadro aos Pontos -->
+            <div class="form-group">
+              <label class="form-label" for="inputDistance">
+                Distância do Quadro até os Pontos (metros)
+                <span class="form-hint">Comprimento do trajeto dos condutores</span>
+              </label>
+              <input type="number" id="inputDistance" class="form-control" min="1" max="500" value="20" step="1" />
+              <span class="form-hint" id="distanceOriginHint">Origem: Sincronizado com a vistoria guiada</span>
+            </div>
+          </div>
+
+          <!-- Seção de Pontos de Recarga -->
+          <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div>
+                <h3 style="font-size: 14px; font-weight: 700; color: var(--text-main);">Pontos de Recarga de Veículos Elétricos</h3>
+                <span class="form-hint">Configure até 4 estações de recarga ou tomadas dedicadas</span>
+              </div>
+              <button type="button" id="btnAddCharger" class="btn-ghost" style="color: var(--volt-green-dark); border-color: var(--volt-green-dark);">
+                + Adicionar Carregador
+              </button>
+            </div>
+
+            <div id="chargersContainer" class="chargers-container">
+              <!-- Renderizado dinamicamente via UI Controller em cards compactos -->
+            </div>
+          </div>
+
+          <!-- Acordeão: Configurações Avançadas -->
+          <div style="margin-top: 18px;">
+            <button type="button" class="accordion-toggle-btn" id="btnToggleAdvanced">
+              <span>⚙️ Configurações Avançadas (Método de Instalação, Isolação, Agrupamento e Queda)</span>
+              <span id="accordionArrow">▼</span>
+            </button>
+
+            <div class="accordion-content" id="accordionAdvancedContent">
+              <div class="form-grid-3">
+                <!-- Método de Instalação -->
+                <div class="form-group">
+                  <label class="form-label" for="selectInstallMethod">Método de Instalação</label>
+                  <select id="selectInstallMethod" class="form-control">
+                    <option value="B1" selected>Método B1: Eletroduto embutido ou sobre parede</option>
+                    <option value="B2">Método B2: Cabo multipolar em eletroduto</option>
+                    <option value="C">Método C: Fixado diretamente em alvenaria</option>
+                    <option value="F">Método F: Bandeja perfurada / Eletrocalha / Leito</option>
+                  </select>
+                </div>
+
+                <!-- Condutor e Isolação -->
+                <div class="form-group">
+                  <label class="form-label" for="selectCableInsulation">Condutor & Isolação</label>
+                  <select id="selectCableInsulation" class="form-control">
+                    <option value="PVC" selected>Cobre com Isolação PVC (70°C)</option>
+                    <option value="XLPE">Cobre com Isolação XLPE / HEPR (90°C)</option>
+                  </select>
+                </div>
+
+                <!-- Circuitos Agrupados -->
+                <div class="form-group">
+                  <label class="form-label" for="selectGrouping">
+                    Circuitos Agrupados
+                    <span class="form-hint">Mesmo eletroduto/feixe</span>
+                  </label>
+                  <select id="selectGrouping" class="form-control">
+                    <option value="1" selected>1 circuito exclusivo (Fator: 1,00)</option>
+                    <option value="2">2 circuitos agrupados (Fator: 0,80)</option>
+                    <option value="3">3 circuitos agrupados (Fator: 0,70)</option>
+                    <option value="4">4 circuitos agrupados (Fator: 0,65)</option>
+                    <option value="5">5 circuitos agrupados (Fator: 0,60)</option>
+                    <option value="6">6 circuitos agrupados (Fator: 0,57)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-grid-2" style="margin-top: 10px;">
+                <!-- Temperatura Ambiente -->
+                <div class="form-group">
+                  <label class="form-label" for="selectAmbientTemp">Temperatura Ambiente</label>
+                  <select id="selectAmbientTemp" class="form-control">
+                    <option value="25">25°C (Ambiente refrigerado)</option>
+                    <option value="30" selected>30°C (Referência padrão NBR 5410)</option>
+                    <option value="35">35°C (Garagem quente / Área externa)</option>
+                    <option value="40">40°C (Ambiente confinado / Exposição solar)</option>
+                  </select>
+                </div>
+
+                <!-- Limite de Queda de Tensão -->
+                <div class="form-group">
+                  <label class="form-label" for="inputMaxDrop">
+                    Limite de Queda de Tensão (%)
+                    <span class="form-hint">Máx. NBR 5410: 4% terminal</span>
+                  </label>
+                  <input type="number" id="inputMaxDrop" class="form-control" min="1.0" max="7.0" step="0.5" value="4.0" />
+                </div>
+              </div>
+
+              <div style="margin-top: 12px;">
+                <label class="checkbox-inline">
+                  <input type="checkbox" id="chkContinuousMargin" checked />
+                  <span><strong>Aplicar margem de 125% na corrente de projeto:</strong> critério conservador recomendado para operação contínua de recarga prolongada (> 3 horas).</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             ÁREA C: RESULTADOS TÉCNICOS (RESUMO EM DESTAQUE + CENÁRIO A vs B)
+             ================================================================ -->
+        <section class="card-panel" id="techAreaResults">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <span class="panel-title-badge">C</span>
+              Resultados Técnicos & Dimensionamento
+            </h2>
+            <span class="form-hint">Potência, distribuição de fases, cabos, proteções e topologias</span>
+          </div>
+
+          <!-- Resumo em Destaque dos Resultados -->
+          <div id="sizingSummaryContainer">
+            <!-- Renderizado dinamicamente via UI Controller -->
+          </div>
+
+          <!-- Comparativo Cenário A vs Cenário B com "Ver detalhes do cálculo" -->
+          <div id="scenariosComparisonContainer" style="margin-top: 20px;">
+            <!-- Comparativo Cenário A vs Cenário B renderizado dinamicamente -->
+          </div>
+        </section>
+
+        <!-- ================================================================
+             ÁREA D: ADEQUAÇÕES NECESSÁRIAS (PROBLEMAS, PRIORIDADES E BOM)
+             ================================================================ -->
+        <section class="card-panel" id="techAreaAdaptations">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <span class="panel-title-badge">D</span>
+              Adequações Necessárias & Verificações
+            </h2>
+            <span class="form-hint">Ações classificadas por criticidade, componentes e verificações prévias</span>
+          </div>
+
+          <div id="techAdaptationsContainer">
+            <!-- Renderizado dinamicamente via UI Controller -->
+          </div>
+        </section>
+
+      </main>
 
     <!-- ====================================================================
          ABA 2: SEGURANÇA E CONFORMIDADE (CHECKLIST AGRUPADO)

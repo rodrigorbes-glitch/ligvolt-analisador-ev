@@ -307,7 +307,66 @@ function runAllTests() {
   assert(reportHtml.includes('RELATÓRIO PRELIMINAR DE VISTORIA E VIABILIDADE'), 'Título do laudo preliminar gerado');
   assert(reportHtml.includes('Evidências Fotográficas da Vistoria'), 'Seção de evidências fotográficas presente');
   assert(reportHtml.includes('João da Silva'), 'Nome do cliente presente');
+  assert(reportHtml.includes('Alimentação Elétrica:'), 'Seção de alimentação elétrica presente no laudo');
   assert(reportHtml.includes('Natureza Preliminar Deste Relatório'), 'Aviso legal obrigatório presente');
+
+  // CASO 9: Vistoria com Alimentação Desconhecida ("Não sei")
+  console.log('\n--- CASO 9: Vistoria com Alimentação e Tensão Desconhecidas ---');
+  const inspCase9 = {
+    localData: {
+      locationType: 'residencia',
+      installArea: 'garagem_aberta',
+      supplyType: 'nao_sei',
+      voltagePreset: 'nao_sei',
+      vehicleCount: 1,
+      chargerType: 'wallbox',
+      distanceApprox: '10-25'
+    },
+    confirmations: {
+      mainBreakerConfirmed: '50',
+      groundingConfirmed: 'sim',
+      rainProtectionConfirmed: 'sim',
+      spaceAvailableConfirmed: 'sim',
+      exclusiveCircuitConfirmed: 'sim',
+      capacityVerified: 'sim',
+      cbmerjSprinklers: 'nao_se_aplica'
+    },
+    photos: []
+  };
+  const diagCase9 = SmartInspection.evaluateInspectionViability(inspCase9);
+  assert(diagCase9.problemsFound.some(p => p.title.includes('alimentação')), 'Registra pendência de verificação para tipo de alimentação desconhecido');
+  assert(diagCase9.problemsFound.some(p => p.title.includes('Tensão')), 'Registra pendência de verificação para tensão desconhecida');
+  assert(diagCase9.pendingVerifications.some(v => v.includes('número de condutores de fase')), 'Ação pendente de identificar fases presente');
+
+  // CASO 10: Dimensionamento e Distribuição Real em Rede Bifásica 127/220V
+  console.log('\n--- CASO 10: Dimensionamento Bifásico 127/220V (Padrão Sugerido Ligvolt) ---');
+  const resBifasica = Engine.calculateInstallation({
+    distance: 20,
+    supplyType: 'bifasica',
+    voltagePreset: '127_220',
+    mainBreaker: 50,
+    existingDemand: { L1: 15, L2: 10 },
+    cableInsulation: 'PVC',
+    installationMethod: 'B1',
+    groupingCircuits: 1,
+    ambientTemp: 30,
+    useContinuousMargin: true,
+    chargers: [
+      { id: 1, name: 'Wallbox Residencial (F-F)', nominalCurrent: 32, enabled: true, phaseConfig: 'L1-L2' }
+    ]
+  });
+
+  assert(resBifasica.status === 'OK', 'Cálculo de instalação bifásica executado com sucesso');
+  const chBif = resBifasica.chargers[0];
+  assert(chBif.projectCurrent === 40, `Corrente de projeto na ligação bifásica 220V: ${chBif.projectCurrent}A`);
+  assert(chBif.cableSection >= 6, `Cabo dimensionado conforme capacidade de condução: ${chBif.cableSection}mm²`);
+  assert(chBif.voltageDropPercent <= 4.0, `Queda de tensão bifásica calculada corretamente em 220V F-F: ${chBif.voltageDropPercent}%`);
+
+  const pSummary = resBifasica.phaseSummary;
+  assert(pSummary.phases.A.evProject === 40, 'Fase A recebe 40A do carregador L1-L2');
+  assert(pSummary.phases.B.evProject === 40, 'Fase B recebe 40A do carregador L1-L2');
+  assert(pSummary.phases.C.evProject === 0, 'Fase C não recebe carga em alimentação bifásica');
+  assert(pSummary.maxPhaseProject === 55, `Corrente máxima da maior fase calculada sem soma escalar incorreta: ${pSummary.maxPhaseProject}A (15A existente + 40A EV)`);
 
   // RESUMO DOS TESTES
   console.log('\n====================================================');

@@ -264,7 +264,35 @@
         clientMeta: { clientName: 'João da Silva' }
       }, diagCase1);
       assert(reportHtml.includes('RELATÓRIO PRELIMINAR DE VISTORIA E VIABILIDADE'), 'Caso 8: Título do laudo preliminar gerado');
+      assert(reportHtml.includes('Alimentação Elétrica:'), 'Caso 8: Seção de alimentação elétrica presente no laudo');
       assert(reportHtml.includes('Natureza Preliminar Deste Relatório'), 'Caso 8: Aviso legal obrigatório presente');
+
+      // CASO 9: Vistoria com Alimentação e Tensão Desconhecidas
+      const inspCase9 = {
+        localData: {
+          locationType: 'residencia', installArea: 'garagem_aberta', supplyType: 'nao_sei', voltagePreset: 'nao_sei',
+          vehicleCount: 1, chargerType: 'wallbox', distanceApprox: '10-25'
+        },
+        confirmations: {
+          mainBreakerConfirmed: '50', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim',
+          exclusiveCircuitConfirmed: 'sim', capacityVerified: 'sim', cbmerjSprinklers: 'nao_se_aplica'
+        },
+        photos: []
+      };
+      const diagCase9 = SmartInspection.evaluateInspectionViability(inspCase9);
+      assert(diagCase9.problemsFound.some(p => p.title.includes('alimentação')), 'Caso 9: Pendência para tipo de alimentação desconhecido');
+      assert(diagCase9.problemsFound.some(p => p.title.includes('Tensão')), 'Caso 9: Pendência para tensão desconhecida');
+
+      // CASO 10: Dimensionamento Bifásico 127/220V
+      const resBifasica = Engine.calculateInstallation({
+        distance: 20, supplyType: 'bifasica', voltagePreset: '127_220', mainBreaker: 50,
+        existingDemand: { L1: 15, L2: 10 }, cableInsulation: 'PVC', installationMethod: 'B1', groupingCircuits: 1,
+        chargers: [{ id: 1, name: 'Wallbox Residencial (F-F)', nominalCurrent: 32, enabled: true, phaseConfig: 'L1-L2' }]
+      });
+      assert(resBifasica.status === 'OK', 'Caso 10: Instalação bifásica calculada com sucesso');
+      assert(resBifasica.phaseSummary.phases.A.evProject === 40, 'Caso 10: Fase A recebe 40A do carregador L1-L2');
+      assert(resBifasica.phaseSummary.phases.B.evProject === 40, 'Caso 10: Fase B recebe 40A do carregador L1-L2');
+      assert(resBifasica.phaseSummary.maxPhaseProject === 55, 'Caso 10: Corrente máxima 55A sem soma escalar incorreta');
 
       log(`\n====================================================`);
       log(`🏁 RESULTADO FINAL: ${passed} PASSARAM | ${failed} FALHARAM`, failed === 0 ? 'pass' : 'fail');
