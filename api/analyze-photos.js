@@ -1,7 +1,7 @@
 /**
  * LIGVOLT - Vercel Serverless Function: Análise Multimodal de Fotos de Vistoria
  * Endpoint: /api/analyze-photos
- * Suporta Google Gemini Multimodal Vision API (gemini-2.5-flash com fallback para gemini-2.0-flash)
+ * Suporta Google Gemini Multimodal Vision API (gemini-2.5-flash com fallback para gemini-2.5-flash-lite e gemini-2.5-pro)
  */
 
 module.exports = async function handler(req, res) {
@@ -209,10 +209,10 @@ Responda ESTRITAMENTE em formato JSON (sem markdown, sem blocos de texto antes o
       body: JSON.stringify(requestBody)
     });
 
-    // Fallback para modelo multimodal estável recente: gemini-2.0-flash
-    if (!response.ok && (response.status === 404 || response.status === 400)) {
-      usedModel = 'gemini-2.0-flash';
-      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    // Fallback para modelo multimodal disponível e compatível: gemini-2.5-flash-lite
+    if (!response.ok && (response.status === 404 || response.status === 400 || response.status === 503)) {
+      usedModel = 'gemini-2.5-flash-lite';
+      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
       response = await fetch(fallbackUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -220,8 +220,8 @@ Responda ESTRITAMENTE em formato JSON (sem markdown, sem blocos de texto antes o
       });
     }
 
-    // Segundo fallback caso gemini-2.0-flash retorne 404
-    if (!response.ok && response.status === 404) {
+    // Segundo fallback caso gemini-2.5-flash-lite não responda: gemini-2.5-pro
+    if (!response.ok && (response.status === 404 || response.status === 503)) {
       usedModel = 'gemini-2.5-pro';
       const proUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
       response = await fetch(proUrl, {

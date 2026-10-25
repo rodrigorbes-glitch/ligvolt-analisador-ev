@@ -645,7 +645,7 @@
         <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <strong style="font-size: 13px; color: #0F172A;">
-              Modelo de IA Utilizado: ${aiAnalysis && aiAnalysis.modelUsed ? escapeHtml(aiAnalysis.modelUsed) : (aiAnalysis ? 'Google Gemini Multimodal Vision API (gemini-2.5-flash / gemini-2.0-flash)' : 'Google Gemini Multimodal Vision API / Heurística Pericial Local')}
+              Modelo de IA Utilizado: ${aiAnalysis && aiAnalysis.modelUsed ? escapeHtml(aiAnalysis.modelUsed) : (aiAnalysis ? 'Google Gemini Multimodal Vision API (gemini-2.5-flash / gemini-2.5-flash-lite)' : 'Google Gemini Multimodal Vision API / Heurística Pericial Local')}
             </strong>
             <span style="background: ${aiAnalysis ? '#EFF6FF' : '#F1F5F9'}; color: ${aiAnalysis ? '#1E40AF' : '#475569'}; border: 1px solid ${aiAnalysis ? '#BFDBFE' : '#CBD5E1'}; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700;">
               ${aiAnalysis ? '✨ Análise Multimodal Processada' : '⚙️ Heurística Pericial Determinística Local'}

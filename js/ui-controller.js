@@ -1548,10 +1548,12 @@
 
       const payload = {
         localData: inspectionState.localData,
+        locationContext: inspectionState.localData,
         photos: inspectionState.photos.map(p => ({
           category: p.categoryKey,
           mimeType: p.mimeType,
-          base64: p.base64
+          base64: p.base64,
+          dataUrl: p.dataUrl
         }))
       };
 
