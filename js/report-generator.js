@@ -17,7 +17,7 @@
   /**
    * Constrói o HTML completo do relatório técnico preliminar
    */
-  function buildReportHTML(calcResult, diagnostic, checklistResponses, metadata) {
+  function buildReportHTML(calcResult, diagnostic, checklistResponses, metadata, photos = []) {
     const meta = metadata || {};
     const clientName = meta.clientName || 'Cliente / Condomínio não identificado';
     const address = meta.address || 'Endereço não informado';
@@ -26,6 +26,12 @@
     const dateFormatted = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
+
+    const ComplianceModule = (typeof LigvoltCompliance !== 'undefined') 
+      ? LigvoltCompliance 
+      : (typeof require !== 'undefined' ? require('./compliance-rules') : { CHECKLIST_ITEMS: [] });
+
+    const checklistList = (ComplianceModule && ComplianceModule.CHECKLIST_ITEMS) || [];
 
     const { input, chargers, phaseSummary, scenarioA, scenarioB, comparison } = calcResult;
 
@@ -337,7 +343,7 @@
             </tr>
           </thead>
           <tbody>
-            ${LigvoltCompliance.CHECKLIST_ITEMS.map(item => {
+            ${checklistList.map(item => {
               const val = checklistResponses[item.id] || item.defaultStatus || 'nao_verificado';
               return `
                 <tr>
@@ -350,6 +356,35 @@
             }).join('')}
           </tbody>
         </table>
+      </div>
+
+      <!-- 8. EVIDÊNCIAS FOTOGRÁFICAS DA INSTALAÇÃO -->
+      <div class="report-section">
+        <h3 class="section-title">8. Evidências Fotográficas da Instalação (Registro em Loco / Arquivo)</h3>
+        ${photos && photos.length > 0 ? `
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 10px;">
+            ${photos.map((p, idx) => `
+              <div style="border: 1px solid #CBD5E1; border-radius: 8px; padding: 8px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05); page-break-inside: avoid; break-inside: avoid;">
+                <div style="width: 100%; height: 200px; background: #0F172A; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                  <img src="${p.dataUrl}" alt="${escapeHtml(p.categoryName)}" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;" />
+                </div>
+                <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
+                  <div>
+                    <strong style="font-size: 11.5px; color: #0F172A; display: block;">Foto ${idx + 1}: ${escapeHtml(p.categoryName)}</strong>
+                    <span style="font-size: 10.5px; color: #64748B;">Data/Hora: ${escapeHtml(p.timestamp || 'Registrada na vistoria')}</span>
+                  </div>
+                  <span style="background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 700; white-space: nowrap;">
+                    📸 Evidência em Loco
+                  </span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div style="background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: #64748B;">
+            📷 Nenhuma fotografia anexada à instalação. Utilize a aba Vistoria Guiada para fotografar o quadro elétrico e o local da vaga com a câmera do celular ou anexar fotos da galeria.
+          </div>
+        `}
       </div>
 
       <!-- NOTAS NORMATIVAS E DISCLAIMER LEGAL -->

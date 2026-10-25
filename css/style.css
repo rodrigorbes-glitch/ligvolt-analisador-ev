@@ -2553,3 +2553,56 @@ input:checked + .slider:before {
 .verification-list-box li {
   margin-bottom: 4px;
 }
+
+/* ==========================================================================
+   ESTILOS DE EVIDÊNCIAS FOTOGRÁFICAS & IMPRESSÃO / PDF
+   ========================================================================== */
+.photo-report-card {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  .app-header,
+  .mode-switch-container,
+  .tab-nav-wrapper,
+  .bottom-actions-bar,
+  .modal-header-bar,
+  .doc-tabs-bar,
+  .meta-input-grid,
+  .app-toast {
+    display: none !important;
+  }
+  .modal-backdrop {
+    position: static !important;
+    padding: 0 !important;
+    background: none !important;
+  }
+  .modal-window {
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  .modal-scroll-area {
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .report-document, .dossier-document {
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+  }
+  .report-section {
+    page-break-inside: auto;
+  }
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}

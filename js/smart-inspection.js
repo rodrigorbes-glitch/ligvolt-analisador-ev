@@ -356,23 +356,40 @@
       badgeColor = '#FFFFFF';
     }
 
-    // Galeria de fotografias capturadas
+    // Galeria de fotografias capturadas em loco ou anexadas de arquivo
     const photosGalleryHtml = photos && photos.length > 0 ? `
       <div class="report-section">
-        <h3 class="section-title">Evidências Fotográficas da Vistoria</h3>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px;">
+        <h3 class="section-title">8. Evidências Fotográficas da Vistoria (Registro em Loco / Arquivo)</h3>
+        <p style="font-size: 11.5px; color: #475569; margin: 0 0 10px 0;">
+          Fotografias capturadas em loco pelo vistoriador ou anexadas de arquivos digitais para comprovação e triagem pericial:
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 10px;">
           ${photos.map((p, idx) => `
-            <div style="border: 1px solid #CBD5E1; border-radius: 6px; padding: 6px; background: #F8FAFC; page-break-inside: avoid;">
-              <img src="${p.dataUrl}" alt="${escapeHtml(p.categoryName)}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 4px; display: block;" />
-              <div style="margin-top: 6px; font-size: 11px;">
-                <strong style="color: #0E1116;">Foto ${idx + 1}: ${escapeHtml(p.categoryName)}</strong>
-                <span style="color: #64748B; display: block;">${p.timestamp || 'Capturada na vistoria'}</span>
+            <div style="border: 1px solid #CBD5E1; border-radius: 8px; padding: 8px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05); page-break-inside: avoid; break-inside: avoid;">
+              <div style="width: 100%; height: 200px; background: #0F172A; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <img src="${p.dataUrl}" alt="${escapeHtml(p.categoryName)}" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;" />
+              </div>
+              <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
+                <div>
+                  <strong style="font-size: 11.5px; color: #0F172A; display: block;">Foto ${idx + 1}: ${escapeHtml(p.categoryName)}</strong>
+                  <span style="font-size: 10.5px; color: #64748B;">Data/Hora: ${escapeHtml(p.timestamp || 'Registrada na vistoria')}</span>
+                </div>
+                <span style="background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 700; white-space: nowrap;">
+                  📸 Registro em Loco
+                </span>
               </div>
             </div>
           `).join('')}
         </div>
       </div>
-    ` : '<p style="font-size: 12px; color: #64748B;">Nenhuma evidência fotográfica anexada à vistoria.</p>';
+    ` : `
+      <div class="report-section">
+        <h3 class="section-title">8. Evidências Fotográficas da Vistoria</h3>
+        <div style="background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: #64748B;">
+          📷 Nenhuma evidência fotográfica anexada à vistoria. Para enriquecer o laudo e permitir análise visual assistida por IA, fotografe o quadro e a vaga no Passo 2 da Vistoria Guiada.
+        </div>
+      </div>
+    `;
 
     return `
     <div class="report-document" id="printableInspectionReport">

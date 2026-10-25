@@ -945,18 +945,18 @@
         content.innerHTML = '<p style="padding: 20px; color: #DC2626;">Módulo de vistoria não disponível ou pendente de cálculo.</p>';
       }
     } else if (state.activeDocType === 'relatorio') {
-      content.innerHTML = Report.buildReportHTML(calcResult, diagnostic, state.checklistResponses, state.reportMetadata);
+      content.innerHTML = Report.buildReportHTML(calcResult, diagnostic, state.checklistResponses, state.reportMetadata, inspectionState.photos);
     } else if (state.activeDocType === 'laudo') {
-      content.innerHTML = Dossier.buildTechnicalOpinion(calcResult, diagnostic, state.checklistResponses, state.reportMetadata);
+      content.innerHTML = Dossier.buildTechnicalOpinion(calcResult, diagnostic, state.checklistResponses, state.reportMetadata, inspectionState.photos);
     } else if (state.activeDocType === 'memoria') {
       content.innerHTML = Dossier.buildCalculationMemory(calcResult, state.reportMetadata);
     } else if (state.activeDocType === 'concessionaria') {
       content.innerHTML = Dossier.buildConcessionaireRequest(calcResult, state.reportMetadata);
     } else if (state.activeDocType === 'dossie') {
       content.innerHTML = `
-        ${Report.buildReportHTML(calcResult, diagnostic, state.checklistResponses, state.reportMetadata)}
+        ${Report.buildReportHTML(calcResult, diagnostic, state.checklistResponses, state.reportMetadata, inspectionState.photos)}
         <div style="page-break-before: always; margin-top: 30px; border-top: 2px dashed #94A3B8; padding-top: 20px;"></div>
-        ${Dossier.buildTechnicalOpinion(calcResult, diagnostic, state.checklistResponses, state.reportMetadata)}
+        ${Dossier.buildTechnicalOpinion(calcResult, diagnostic, state.checklistResponses, state.reportMetadata, inspectionState.photos)}
         <div style="page-break-before: always; margin-top: 30px; border-top: 2px dashed #94A3B8; padding-top: 20px;"></div>
         ${Dossier.buildCalculationMemory(calcResult, state.reportMetadata)}
         <div style="page-break-before: always; margin-top: 30px; border-top: 2px dashed #94A3B8; padding-top: 20px;"></div>

@@ -7,6 +7,7 @@ const Engine = require('../js/calculation-engine');
 const Compliance = require('../js/compliance-rules');
 const Diagnostic = require('../js/diagnostic-engine');
 const Dossier = require('../js/dossier-generator');
+const Report = require('../js/report-generator');
 const SmartInspection = require('../js/smart-inspection');
 
 function runAllTests() {
@@ -178,8 +179,11 @@ function runAllTests() {
   assert(diagAdeq.state === 'APTO_COM_ADEQUACOES', `Com adequações viáveis deve resultar em APTO COM ADEQUAÇÕES: ${diagAdeq.state}`);
   assert(diagAdeq.requiredAdaptations.length > 0, 'Lista de adequações prioritárias gerada');
 
-  // TESTE 10: Laudo Técnico de Engenharia (Dossiê)
-  console.log('\n--- TESTE 10: Emissão do Laudo Técnico de Engenharia ---');
+  // TESTE 10: Laudo Técnico de Engenharia (Dossiê) com Evidências Fotográficas
+  console.log('\n--- TESTE 10: Emissão do Laudo Técnico de Engenharia com Fotos ---');
+  const samplePhotos = [
+    { id: '1', categoryName: 'Foto Geral do Quadro', dataUrl: 'data:image/jpeg;base64,123', timestamp: '24/10/2026 15:30' }
+  ];
   const opinionHTML = Dossier.buildTechnicalOpinion(res2, diagAdeq, {}, {
     clientName: 'Condomínio Teste',
     address: 'Rua das Flores, 100',
@@ -187,10 +191,17 @@ function runAllTests() {
     crea: 'CREA-RJ 123456/D',
     concessionaria: 'Light',
     ucNumber: '123456789'
-  });
+  }, samplePhotos);
   assert(opinionHTML.includes('LAUDO TÉCNICO DE ENGENHARIA ELÉTRICA'), 'Cabeçalho do laudo gerado');
   assert(opinionHTML.includes('Condomínio Teste'), 'Dados do cliente integrados');
   assert(opinionHTML.includes('CREA-RJ 123456/D'), 'Registro do responsável técnico presente');
+  assert(opinionHTML.includes('Evidências Fotográficas Periciais em Loco'), 'Seção de fotos periciais presente no Laudo Técnico');
+  assert(opinionHTML.includes('Foto Geral do Quadro'), 'Nome da fotografia capturada presente no laudo');
+
+  // TESTE 10b: Relatório Técnico com Evidências Fotográficas
+  const reportWithPhotosHTML = Report.buildReportHTML(res2, diagAdeq, {}, { clientName: 'Condomínio Teste' }, samplePhotos);
+  assert(reportWithPhotosHTML.includes('Evidências Fotográficas da Instalação'), 'Seção de fotos presente no Relatório Técnico');
+  assert(reportWithPhotosHTML.includes('Foto Geral do Quadro'), 'Nome da fotografia capturada presente no Relatório Técnico');
 
   // TESTE 11: Memória de Cálculo Detalhada (Dossiê)
   console.log('\n--- TESTE 11: Emissão da Memória de Cálculo Detalhada ---');

@@ -17,7 +17,7 @@
   /**
    * Constrói o Laudo Técnico Pericial de Engenharia
    */
-  function buildTechnicalOpinion(calcResult, diagnostic, checklistResponses, meta) {
+  function buildTechnicalOpinion(calcResult, diagnostic, checklistResponses, meta, photos = []) {
     const dateFormatted = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
@@ -116,6 +116,35 @@
             </li>
           `).join('')}
         </ol>
+      </div>
+
+      <!-- 6. EVIDÊNCIAS FOTOGRÁFICAS PERICIAIS EM LOCO -->
+      <div class="report-section">
+        <h3 class="section-title">6. Evidências Fotográficas Periciais em Loco</h3>
+        ${photos && photos.length > 0 ? `
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 10px;">
+            ${photos.map((p, idx) => `
+              <div style="border: 1px solid #CBD5E1; border-radius: 8px; padding: 8px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05); page-break-inside: avoid; break-inside: avoid;">
+                <div style="width: 100%; height: 200px; background: #0F172A; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                  <img src="${p.dataUrl}" alt="${escapeHtml(p.categoryName)}" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;" />
+                </div>
+                <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
+                  <div>
+                    <strong style="font-size: 11.5px; color: #0F172A; display: block;">Evidência Pericial ${idx + 1}: ${escapeHtml(p.categoryName)}</strong>
+                    <span style="font-size: 10.5px; color: #64748B;">Registro: ${escapeHtml(p.timestamp || 'Vistoria presencial')}</span>
+                  </div>
+                  <span style="background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 700; white-space: nowrap;">
+                    ✓ Registro em Loco
+                  </span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div style="background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: #64748B;">
+            📷 Nenhuma evidência fotográfica anexada ao laudo pericial. As fotografias capturadas em loco pelo vistoriador ou anexadas de arquivo são integradas automaticamente a este laudo.
+          </div>
+        `}
       </div>
 
       <div class="report-signatures">
@@ -266,7 +295,7 @@
   /**
    * Constrói o Memorial Descritivo e Documentação para Pedido de Aumento de Carga e Homologação
    */
-  function buildConcessionaireRequest(calcResult, meta) {
+  function buildConcessionaireRequest(calcResult, meta, photos = []) {
     const { input, chargers, phaseSummary } = calcResult;
     const dateFormatted = new Date().toLocaleDateString('pt-BR');
     const client = meta.clientName || 'Cliente / Condomínio';
@@ -475,6 +504,35 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- 6. EVIDÊNCIAS FOTOGRÁFICAS PERICIAIS EM LOCO -->
+      <div class="report-section">
+        <h3 class="section-title">6. Evidências Fotográficas Periciais em Loco</h3>
+        ${photos && photos.length > 0 ? `
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 10px;">
+            ${photos.map((p, idx) => `
+              <div style="border: 1px solid #CBD5E1; border-radius: 8px; padding: 8px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.05); page-break-inside: avoid; break-inside: avoid;">
+                <div style="width: 100%; height: 200px; background: #0F172A; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                  <img src="${p.dataUrl}" alt="${escapeHtml(p.categoryName)}" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;" />
+                </div>
+                <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
+                  <div>
+                    <strong style="font-size: 11.5px; color: #0F172A; display: block;">Evidência Pericial ${idx + 1}: ${escapeHtml(p.categoryName)}</strong>
+                    <span style="font-size: 10.5px; color: #64748B;">Registro: ${escapeHtml(p.timestamp || 'Vistoria presencial')}</span>
+                  </div>
+                  <span style="background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 700; white-space: nowrap;">
+                    ✓ Registro em Loco
+                  </span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div style="background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: #64748B;">
+            📷 Nenhuma evidência fotográfica anexada ao laudo pericial. As fotografias capturadas em loco pelo vistoriador ou anexadas de arquivo são integradas automaticamente a este laudo.
+          </div>
+        `}
       </div>
 
       <div class="report-signatures">
