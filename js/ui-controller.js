@@ -1249,8 +1249,10 @@
         const catObj = SmartInspection.PHOTO_CATEGORIES.find(c => c.key === catKey);
 
         try {
-          showToast('Comprimindo foto...');
-          const compressed = await SmartInspection.compressImage(file, 1280, 0.8);
+          showToast('Comprimindo foto com alta resolução para OCR...');
+          const maxDim = (catKey === 'disjuntores' || catKey === 'padrao_entrada') ? 1920 : 1280;
+          const quality = (catKey === 'disjuntores' || catKey === 'padrao_entrada') ? 0.88 : 0.80;
+          const compressed = await SmartInspection.compressImage(file, maxDim, quality);
           // Substitui se já houver foto dessa categoria
           inspectionState.photos = inspectionState.photos.filter(p => p.categoryKey !== catKey);
           inspectionState.photos.push({
@@ -1264,7 +1266,7 @@
           });
           saveInspectionToLocalStorage();
           renderPhotosGrid();
-          showToast('✓ Foto registrada com sucesso!');
+          showToast('✓ Foto registrada com alta nitidez pericial!');
         } catch (err) {
           console.error('Erro ao processar imagem:', err);
           showToast('Erro ao processar a foto. Tente novamente.');
@@ -1286,7 +1288,13 @@
       {
         id: 'mainBreaker',
         title: '⚡ 1. Disjuntor Geral da Entrada',
-        aiBadge: inspectionState.aiAnalysis ? 'Detectado por IA' : 'Estimativa Preliminar',
+        aiBadge: inspectionState.aiAnalysis ? 'Visão Computacional' : 'Heurística Local',
+        aiDetail: inspectionState.aiAnalysis 
+          ? (inspectionState.aiAnalysis.mainBreakerEstimated && inspectionState.aiAnalysis.mainBreakerEstimated !== 'ilegivel'
+              ? `Inscrição ${inspectionState.aiAnalysis.mainBreakerEstimated}A identificada com precisão por OCR.`
+              : 'Inscrições ilegíveis ou pouco nítidas na foto. Amperagem não presumida.')
+          : 'Motor operando com heurística determinística local.',
+        fieldCheck: 'Conferir valor nominal diretamente no medidor da concessionária e na conta de energia.',
         desc: 'Capacidade do disjuntor geral da edificação (visível no quadro ou na caixa do medidor).',
         choices: [
           { val: '40', label: '40A' },
@@ -1303,6 +1311,12 @@
         id: 'spaceAvailable',
         title: '📦 2. Espaço Físico Reserva no Quadro',
         aiBadge: 'Verificação Física',
+        aiDetail: inspectionState.aiAnalysis 
+          ? (inspectionState.aiAnalysis.hasDinSpace 
+              ? `Espaço aparente disponível (~${inspectionState.aiAnalysis.apparentAvailableModules || 2} módulos livres no trilho).`
+              : 'Quadro aparenta ocupação total sem módulos reservas disponíveis.')
+          : 'Avaliação física do trilho DIN.',
+        fieldCheck: 'Medir profundidade útil, barramento pente, compatibilidade de encaixe e dissipação térmica.',
         desc: 'Existe espaço livre no trilho DIN do quadro para encaixar novos módulos de disjuntores e proteção DR?',
         choices: [
           { val: 'sim', label: '✓ Sim, há espaço livre no trilho' },
@@ -1315,7 +1329,13 @@
       {
         id: 'grounding',
         title: '🌱 3. Sistema de Aterramento (Condutor PE)',
-        aiBadge: 'Segurança Crítica',
+        aiBadge: 'Segurança Humana',
+        aiDetail: inspectionState.aiAnalysis 
+          ? (inspectionState.aiAnalysis.groundingIdentified 
+              ? 'Barramento PE visualmente aparente. (Não comprova eficácia elétrica sem teste instrumental).'
+              : 'Barramento PE não observado com clareza nas fotos.')
+          : 'Verificação da malha de aterramento.',
+        fieldCheck: 'Ensaio com terrômetro (R ≤ 10Ω) e continuidade PE. Presença visual de barramento não substitui medição.',
         desc: 'O local possui condutor de aterramento com barramento interligado? (A NBR 5410 proíbe recarga sem aterramento)',
         choices: [
           { val: 'sim', label: '✓ Sim, possui barramento de terra' },
@@ -1328,7 +1348,11 @@
       {
         id: 'rainProtection',
         title: '☔ 4. Proteção Contra Chuva no Local do Carregador',
-        aiBadge: 'Intempéries',
+        aiBadge: 'Ambiente & Invólucro',
+        aiDetail: inspectionState.aiAnalysis && inspectionState.aiAnalysis.environment
+          ? `Ambiente avaliado: ${inspectionState.aiAnalysis.environment.apparentArea || 'coberto'}. Invólucro sugerido: ${inspectionState.aiAnalysis.environment.recommendedEnclosure || 'IP44/IP54'}.`
+          : 'Avaliação da exposição a intempéries.',
+        fieldCheck: 'Verificar incidência de sol/chuva de vento e classe IP do equipamento (IP44/IP54 abrigado, IP65 ao ar livre).',
         desc: 'O ponto pretendido para o carregador é abrigado ou ficará exposto a chuvas diretas e sol?',
         choices: [
           { val: 'sim', label: '✓ Abrigado / Coberto' },
@@ -1340,7 +1364,9 @@
       {
         id: 'exclusiveCircuit',
         title: '🔌 5. Circuito Elétrico para o Carregador',
-        aiBadge: 'NBR 17019',
+        aiBadge: 'ABNT NBR 17019',
+        aiDetail: 'A norma proíbe terminantemente alimentar recarga veicular por circuitos compartilhados.',
+        fieldCheck: 'Confirmar tubulação e cabeamento 100% exclusivo do quadro até o ponto com DR Tipo A dedicado.',
         desc: 'A norma exige circuito 100% exclusivo do quadro até o carregador (proibido compartilhar com tomadas comuns).',
         choices: [
           { val: 'nao', label: '🛠️ Instalar novo circuito dedicado (Padrão correto)' },
@@ -1353,7 +1379,9 @@
       {
         id: 'capacityVerified',
         title: '📊 6. Demanda e Folga de Potência',
-        aiBadge: 'Capacidade Concessionária',
+        aiBadge: 'Concessionária',
+        aiDetail: 'Conformidade da capacidade de fornecimento contratada junto à distribuidora.',
+        fieldCheck: 'Medição de corrente nos horários de maior carga com alicate amperímetro TRMS.',
         desc: 'A demanda de consumo elétrico da edificação nos horários de pico já foi medida ou analisada na conta de luz?',
         choices: [
           { val: 'sim', label: '✓ Sim, já verificada e há folga' },
@@ -1369,6 +1397,12 @@
         id: 'cbmerjSprinklers',
         title: '🚒 7. Proteção Contra Incêndio na Garagem Fechada / Subsolo',
         aiBadge: isRJ ? 'Exigência CBMERJ 326/2025' : 'Norma Estadual de Bombeiros',
+        aiDetail: inspectionState.aiAnalysis && inspectionState.aiAnalysis.environment
+          ? (inspectionState.aiAnalysis.environment.sprinklersApparent 
+              ? 'Chuveiros aparentes identificados no teto (operabilidade hidráulica a testar).' 
+              : 'Bicos de sprinklers não visíveis nas fotos do ambiente.')
+          : 'Verificação do sistema de combate a incêndio.',
+        fieldCheck: 'Verificar aprovação no Corpo de Bombeiros, pressurização e rota de exaustão de fumaça.',
         desc: isRJ 
           ? 'No Estado do RJ, a Nota CBMERJ 326/2025 proíbe recarga em subsolos e garagens fechadas sem chuveiros automáticos (sprinklers).'
           : 'Garagens subterrâneas ou enclausuradas requerem sistema de combate a incêndio com bicos de chuveiros automáticos (sprinklers).',
@@ -1391,6 +1425,12 @@
           <span class="confirm-ai-badge">${escapeHtml(cardData.aiBadge)}</span>
         </div>
         <p class="confirm-item-desc">${escapeHtml(cardData.desc)}</p>
+        
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 11.5px; line-height: 1.45;">
+          <div style="color: #1E40AF; margin-bottom: 4px;"><strong>🤖 IA (Visão):</strong> ${escapeHtml(cardData.aiDetail)}</div>
+          <div style="color: #475569;"><strong>🔍 Validação de Campo:</strong> ${escapeHtml(cardData.fieldCheck)}</div>
+        </div>
+
         <div class="confirm-buttons-row" data-card-id="${cardData.id}">
           ${cardData.choices.map(c => `
             <button type="button" class="btn-confirm-choice ${cardData.current === c.val ? 'is-selected' : ''}" data-value="${c.val}">
@@ -1516,6 +1556,7 @@
       };
 
       let analysisResult = null;
+      let usedModelName = null;
       try {
         const response = await fetch('/api/analyze-photos', {
           method: 'POST',
@@ -1526,6 +1567,7 @@
         if (response.ok) {
           const json = await response.json();
           analysisResult = json.analysis;
+          usedModelName = json.modelUsed;
         }
       } catch (networkErr) {
         console.warn('API /api/analyze-photos offline ou sem chave. Usando motor heurístico local.', networkErr);
@@ -1535,24 +1577,45 @@
       if (fill) fill.style.width = '95%';
       await new Promise(r => setTimeout(r, 700));
 
-      // Se a API retornou análise, aplicar no estado
+      // Se a API retornou análise, aplicar no estado com rigor pericial
       if (analysisResult) {
-        inspectionState.aiAnalysis = analysisResult;
-        if (analysisResult.mainBreakerEstimate) {
-          inspectionState.confirmations.mainBreakerConfirmed = String(analysisResult.mainBreakerEstimate);
+        if (usedModelName) {
+          analysisResult.modelUsed = usedModelName;
         }
+        inspectionState.aiAnalysis = analysisResult;
+
+        // OCR Aprimorado: somente aplica corrente se for nítida e identificada
+        const detectedBreaker = analysisResult.mainBreakerEstimated || analysisResult.mainBreakerEstimate;
+        if (detectedBreaker && detectedBreaker !== 'ilegivel' && !String(detectedBreaker).toLowerCase().includes('ileg')) {
+          inspectionState.confirmations.mainBreakerConfirmed = String(detectedBreaker).replace(/\D/g, '');
+        } else {
+          // Não inventa disjuntor! Deixa 'nao_sei' e solicita confirmação do usuário
+          inspectionState.confirmations.mainBreakerConfirmed = 'nao_sei';
+        }
+
         if (analysisResult.hasDinSpace !== undefined) {
           inspectionState.confirmations.spaceAvailableConfirmed = analysisResult.hasDinSpace ? 'sim' : 'nao';
         }
-        if (analysisResult.groundingIdentified !== undefined) {
-          inspectionState.confirmations.groundingConfirmed = analysisResult.groundingIdentified ? 'sim' : 'nao_sei';
+
+        // Barramento visível não atesta suficiência de aterramento
+        if (analysisResult.groundingIdentified) {
+          inspectionState.confirmations.groundingConfirmed = 'sim';
+        } else if (analysisResult.groundingIdentified === false) {
+          inspectionState.confirmations.groundingConfirmed = 'nao_sei';
+        }
+
+        // Alerta de qualidade de imagem caso fotos estejam ilegíveis ou desfocadas
+        if (Array.isArray(analysisResult.photoQualityFeedback)) {
+          const badPhoto = analysisResult.photoQualityFeedback.find(q => q.quality === 'ilegivel' || q.quality === 'desfocada' || q.quality === 'escura');
+          if (badPhoto) {
+            setTimeout(() => {
+              showToast(`📸 Dica pericial: ${badPhoto.tip || 'Inscrições pouco nítidas. Recomendamos capturar foto com boa iluminação ou confirmar manualmente.'}`, 6000);
+            }, 800);
+          }
         }
       } else {
-        // Heurística local inteligente
-        const hasBreakerPhoto = inspectionState.photos.some(p => p.categoryKey === 'disjuntores' || p.categoryKey === 'quadro_geral');
-        if (hasBreakerPhoto && inspectionState.confirmations.mainBreakerConfirmed === 'nao_sei') {
-          inspectionState.confirmations.mainBreakerConfirmed = '50';
-        }
+        // Modo offline / heurística determinística local
+        inspectionState.aiAnalysis = null;
       }
 
       saveInspectionToLocalStorage();

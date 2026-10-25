@@ -74,7 +74,7 @@
 
   /**
    * Comprime uma imagem no navegador utilizando Canvas
-   * Reduz para max 1280px e converte para JPEG 80% (tamanho ~80-180KB)
+   * Ajusta resolução e qualidade de acordo com a necessidade (alta fidelidade para leitura OCR de disjuntores)
    */
   function compressImage(file, maxDimension = 1280, quality = 0.8) {
     return new Promise((resolve, reject) => {
@@ -105,9 +105,11 @@
           const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
           const sizeBytes = Math.round((compressedDataUrl.length * 3) / 4);
           const sizeKB = Math.round(sizeBytes / 1024);
+          const base64 = compressedDataUrl.includes('base64,') ? compressedDataUrl.split('base64,')[1] : '';
 
           resolve({
             dataUrl: compressedDataUrl,
+            base64,
             width,
             height,
             sizeKB,
@@ -194,22 +196,36 @@
         evidence: 'Declaração na etapa de confirmação'
       });
       criticalActions.push('Instalar ou readequar a malha de aterramento em esquema TN-S ou TT conforme ABNT NBR 5410 antes de qualquer energização.');
-    } else if (confirmations.groundingConfirmed === 'nao_sei') {
-      pendingVerifications.push('Medir a impedância do aterramento e confirmar a continuidade do condutor PE até o ponto de recarga.');
-      necessaryActions.push('Realizar teste instrumental de continuidade e resistência de aterramento durante a visita técnica.');
+    } else {
+      // Mesmo com barramento visível ou confirmado 'sim', a medição ôhmica é mandatória
+      pendingVerifications.push('Medir a resistência de aterramento da malha (R <= 10Ω) e continuidade do PE com terrômetro/alicímetro (a presença física aparente de barramento não comprova eficácia).');
+      if (confirmations.groundingConfirmed === 'nao_sei') {
+        necessaryActions.push('Realizar teste instrumental de continuidade e resistência de aterramento durante a visita técnica.');
+      }
+    }
+
+    // 2.1 RISCO TÉRMICO VISUAL
+    if (aiAnalysis && aiAnalysis.thermalRiskDetected) {
+      problemsFound.push({
+        title: 'Indício visual de anomalia ou dano térmico no quadro',
+        description: 'Foram identificados indícios visuais de aquecimento excessivo, deformação em plásticos ou oxidação em bornes de conexão.',
+        severity: 'critica',
+        evidence: 'Identificado na inspeção de fotos pela IA'
+      });
+      criticalActions.push('Desenergizar o setor afetado e inspecionar/reapertar bornes ou substituir conexões danificadas antes de ligar a recarga.');
     }
 
     // 3. CAPACIDADE ELÉTRICA E DISJUNTOR GERAL
     const mainBreaker = confirmations.mainBreakerConfirmed;
-    if (mainBreaker === 'nao_sei' || !mainBreaker) {
+    if (mainBreaker === 'nao_sei' || mainBreaker === 'ilegivel' || !mainBreaker) {
       problemsFound.push({
         title: 'Capacidade do disjuntor geral da entrada não comprovada',
-        description: 'Não foi possível confirmar se a entrada de energia suporta a carga contínua adicional do carregador.',
+        description: 'Inscrições ilegíveis ou não confirmadas no corpo dos disjuntores. O sistema não presume nem inventa correntes nominais.',
         severity: 'necessaria',
-        evidence: 'Fotos aproximadas dos disjuntores'
+        evidence: 'Fotos aproximadas dos disjuntores (inscrição ilegível ou não visível)'
       });
       pendingVerifications.push('Verificar o valor nominal do disjuntor geral no medidor da concessionária e analisar a conta de energia.');
-      necessaryActions.push('Verificar a demanda atual da edificação e consultar a concessionária caso seja necessário aumento de carga.');
+      necessaryActions.push('Capturar nova foto nítida e aproximada das inscrições dos disjuntores ou verificar valor no padrão de entrada.');
     } else {
       const breakerNum = parseFloat(mainBreaker);
       const vehicleCount = parseInt(localData.vehicleCount, 10) || 1;
@@ -523,88 +539,259 @@
         </div>
       ` : ''}
 
-      <!-- 6. ELEMENTOS IDENTIFICADOS PELA IA & CONFIRMAÇÕES -->
+      <!-- 6. MATRIZ DE TRANSPARÊNCIA E TRIPLA VALIDAÇÃO TÉCNICA -->
       <div class="report-section">
-        <h3 class="section-title">6. Parâmetros Observados e Resumo Técnico</h3>
+        <h3 class="section-title">6. Matriz de Transparência e Tripla Validação Técnica</h3>
+        <p style="font-size: 11.5px; color: #475569; margin: 0 0 10px 0;">
+          Para garantir total transparência, rastreabilidade e segurança pericial, cada parâmetro da infraestrutura é discriminado em três perspectivas independentes:
+        </p>
         <table class="report-table">
-          <tr>
-            <td><strong>Disjuntor Geral Observado/Confirmado:</strong></td>
-            <td>${confirmations.mainBreakerConfirmed ? `${confirmations.mainBreakerConfirmed}A` : 'Não identificado (Pendente de medição)'}</td>
-            <td><strong>Continuidade do Aterramento:</strong></td>
-            <td>${formatConfirmationStatus(confirmations.groundingConfirmed)}</td>
-          </tr>
-          <tr>
-            <td><strong>Espaço Reserva no Quadro:</strong></td>
-            <td>${formatConfirmationStatus(confirmations.spaceAvailableConfirmed)}</td>
-            <td><strong>Proteção contra Chuva no Local:</strong></td>
-            <td>${formatConfirmationStatus(confirmations.rainProtectionConfirmed)}</td>
-          </tr>
-          <tr>
-            <td><strong>Circuito Exclusivo Existente:</strong></td>
-            <td>${formatConfirmationStatus(confirmations.exclusiveCircuitConfirmed)}</td>
-            <td><strong>Capacidade da Concessionária Verificada:</strong></td>
-            <td>${formatConfirmationStatus(confirmations.capacityVerified)}</td>
-          </tr>
-          ${isSubsoloOuFechada ? `
+          <thead>
             <tr>
-              <td><strong>Sprinklers no Subsolo (CBMERJ):</strong></td>
-              <td colspan="3">${formatConfirmationStatus(confirmations.cbmerjSprinklers)}</td>
+              <th style="width: 24%;">Item de Infraestrutura</th>
+              <th style="width: 25%;">🤖 Identificação por IA (Visão)</th>
+              <th style="width: 23%;">👤 Declarado pelo Usuário</th>
+              <th style="width: 28%;">🔍 Validação Presencial Obrigatória</th>
             </tr>
-          ` : ''}
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Disjuntor Geral da Entrada:</strong></td>
+              <td>
+                ${aiAnalysis 
+                  ? (aiAnalysis.mainBreakerEstimated && aiAnalysis.mainBreakerEstimated !== 'ilegivel' 
+                      ? `<span class="status-pill status-green">${escapeHtml(aiAnalysis.mainBreakerEstimated)}A (OCR)</span>` 
+                      : '<span class="status-pill status-yellow">⚠️ Inscrição ilegível na foto</span>')
+                  : '<span class="status-pill status-gray">Heurística Local</span>'}
+              </td>
+              <td>${confirmations.mainBreakerConfirmed && confirmations.mainBreakerConfirmed !== 'nao_sei' ? `<strong>${confirmations.mainBreakerConfirmed}A</strong>` : '<span style="color:#DC2626;">Não confirmado</span>'}</td>
+              <td>Conferir valor nominal na caixa do medidor da concessionária e na conta de energia.</td>
+            </tr>
+            <tr>
+              <td><strong>Sistema de Aterramento (PE):</strong></td>
+              <td>
+                ${aiAnalysis 
+                  ? (aiAnalysis.groundingIdentified 
+                      ? '<span class="status-pill status-yellow">Barramento PE visível (Físico)</span>' 
+                      : '<span class="status-pill status-red">Não identificado na foto</span>')
+                  : '<span class="status-pill status-gray">Heurística Local</span>'}
+              </td>
+              <td>${formatConfirmationStatus(confirmations.groundingConfirmed)}</td>
+              <td><strong>Ensaio com terrômetro (R ≤ 10Ω)</strong> e continuidade do PE. A visualização de barramento não atesta conformidade.</td>
+            </tr>
+            <tr>
+              <td><strong>Espaço Reserva no Quadro:</strong></td>
+              <td>
+                ${aiAnalysis 
+                  ? (aiAnalysis.hasDinSpace 
+                      ? `<span class="status-pill status-green">Aparente livre (${aiAnalysis.apparentAvailableModules || 2} mód.)</span>` 
+                      : '<span class="status-pill status-red">Sem reserva aparente</span>')
+                  : '<span class="status-pill status-gray">Heurística Local</span>'}
+              </td>
+              <td>${formatConfirmationStatus(confirmations.spaceAvailableConfirmed)}</td>
+              <td>Medir dimensões internas, barramento pente, compatibilidade física e dissipação de calor.</td>
+            </tr>
+            <tr>
+              <td><strong>Integridade Térmica & Bornes:</strong></td>
+              <td>
+                ${aiAnalysis 
+                  ? (aiAnalysis.thermalRiskDetected 
+                      ? '<span class="status-pill status-red">⚠️ Indício de anomalia</span>' 
+                      : '<span class="status-pill status-green">✓ Sem danos visíveis</span>')
+                  : '<span class="status-pill status-gray">Heurística Local</span>'}
+              </td>
+              <td>Inspecionado visualmente</td>
+              <td><strong>Termografia com câmera infravermelha sob carga.</strong> Foto visível não detecta aquecimento interno.</td>
+            </tr>
+            <tr>
+              <td><strong>Proteção Contra Chuva / Vaga:</strong></td>
+              <td>
+                ${aiAnalysis && aiAnalysis.environment 
+                  ? `<span class="status-pill status-blue">${escapeHtml(aiAnalysis.environment.recommendedEnclosure || 'Avaliado')}</span>` 
+                  : '<span class="status-pill status-gray">Heurística Local</span>'}
+              </td>
+              <td>${formatConfirmationStatus(confirmations.rainProtectionConfirmed)}</td>
+              <td>Verificar estanqueidade real, incidência solar e grau de proteção (IP44/IP54 abrigado ou IP65 exposto).</td>
+            </tr>
+            <tr>
+              <td><strong>Circuito Terminal Dedicado:</strong></td>
+              <td>Topologia a implantar</td>
+              <td>${formatConfirmationStatus(confirmations.exclusiveCircuitConfirmed)}</td>
+              <td>Garantir circuito 100% exclusivo do quadro ao EV, com DR Tipo A e DPS (NBR 17019).</td>
+            </tr>
+            ${isSubsoloOuFechada ? `
+              <tr>
+                <td><strong>Combate a Incêndio (CBMERJ):</strong></td>
+                <td>
+                  ${aiAnalysis && aiAnalysis.environment 
+                    ? (aiAnalysis.environment.sprinklersApparent 
+                        ? '<span class="status-pill status-yellow">Sprinklers aparentes</span>' 
+                        : '<span class="status-pill status-red">Não visíveis</span>')
+                    : '<span class="status-pill status-gray">Heurística Local</span>'}
+                </td>
+                <td>${formatConfirmationStatus(confirmations.cbmerjSprinklers)}</td>
+                <td>Verificar projeto aprovado no Corpo de Bombeiros e pressurização (foto não atesta operabilidade).</td>
+              </tr>
+            ` : ''}
+          </tbody>
         </table>
       </div>
 
-      <!-- 7. METODOLOGIA E DETALHES DA INTELIGÊNCIA ARTIFICIAL (IA) -->
+      <!-- 7. METODOLOGIA, EVIDÊNCIAS E AUDITORIA DA INTELIGÊNCIA ARTIFICIAL -->
       <div class="report-section">
         <h3 class="section-title">7. Metodologia e Diagnóstico de Visão Computacional por Inteligência Artificial (IA)</h3>
         
+        <!-- 7.1 MOTOR DE IA E MODELO UTILIZADO -->
         <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="font-size: 13px; color: #0F172A;">Motor de IA: Google Gemini Multimodal Vision API (gemini-2.5-flash / gemini-1.5-flash)</strong>
-            <span style="background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700;">
-              ${aiAnalysis ? '✨ Análise Multimodal Processada' : '⚙️ Triagem Assistida por Heurística Local'}
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="font-size: 13px; color: #0F172A;">
+              Modelo de IA Utilizado: ${aiAnalysis && aiAnalysis.modelUsed ? escapeHtml(aiAnalysis.modelUsed) : (aiAnalysis ? 'Google Gemini Multimodal Vision API (gemini-2.5-flash / gemini-2.0-flash)' : 'Google Gemini Multimodal Vision API / Heurística Pericial Local')}
+            </strong>
+            <span style="background: ${aiAnalysis ? '#EFF6FF' : '#F1F5F9'}; color: ${aiAnalysis ? '#1E40AF' : '#475569'}; border: 1px solid ${aiAnalysis ? '#BFDBFE' : '#CBD5E1'}; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700;">
+              ${aiAnalysis ? '✨ Análise Multimodal Processada' : '⚙️ Heurística Pericial Determinística Local'}
             </span>
           </div>
-          <p style="font-size: 12px; color: #475569; margin: 0 0 8px 0; line-height: 1.5;">
-            O sistema Ligvolt integra visão computacional de alta fidelidade calibrada para triagem preventiva de conformidade elétrica conforme a <strong>ABNT NBR 5410</strong>, <strong>NBR 17019</strong> e a <strong>Nota CHEMG 326/2025 do CBMERJ</strong>.
+          <p style="font-size: 11.5px; color: #475569; margin: 0; line-height: 1.5;">
+            ${aiAnalysis 
+              ? 'Análise de visão computacional multimodal executada diretamente via Google Gemini Multimodal Vision API, configurada com parâmetros de estrito rigor pericial baseados na ABNT NBR 5410, NBR 17019 e Nota CBMERJ 326/2025.'
+              : 'O sistema integra a arquitetura Google Gemini Multimodal Vision API com chave configurável na Vercel e motor pericial de heurística determinística local Ligvolt (NBR 5410 / NBR 17019).'}
           </p>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 11.5px; color: #334155;">
-            <div><strong>• Reconhecimento Óptico (OCR):</strong> Leitura de correntes nominais (ex: C32, C40, C50, C63, C100) e curvas de disparo dos disjuntores gerais.</div>
-            <div><strong>• Análise Espacial DIN:</strong> Verificação de módulos livres para inclusão de proteção DR Tipo A e DPS Classe II.</div>
-            <div><strong>• Termografia & Degradação:</strong> Identificação de indícios visuais de aquecimento, oxidação ou bornes escurecidos.</div>
-            <div><strong>• Segurança Estrutural:</strong> Verificação de rotas para cabos e conformidade do ambiente da vaga (intempéries / subsolo).</div>
+        </div>
+
+        <!-- 7.2 ANÁLISE DE EVIDÊNCIAS POR ELEMENTO IDENTIFICADO (Item 3 do Requisito) -->
+        <div style="margin-bottom: 14px;">
+          <h4 style="font-size: 12px; font-weight: 700; color: #1E293B; margin-top: 0; margin-bottom: 6px;">
+            7.1 Análise de Evidências Identificadas nas Fotografias:
+          </h4>
+          <table class="report-table" style="font-size: 11px;">
+            <thead>
+              <tr>
+                <th style="width: 22%;">Elemento Identificado</th>
+                <th style="width: 24%;">Inscrição / Registro Observado</th>
+                <th style="width: 14%;">Confiança</th>
+                <th style="width: 15%;">Necessita Confirmação?</th>
+                <th style="width: 25%;">Justificativa Técnica</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${aiAnalysis && Array.isArray(aiAnalysis.evidenceDetails) && aiAnalysis.evidenceDetails.length > 0 ? (
+                aiAnalysis.evidenceDetails.map(ev => `
+                  <tr>
+                    <td><strong>${escapeHtml(ev.element)}</strong></td>
+                    <td><code>${escapeHtml(ev.observedInscription || 'Visual')}</code></td>
+                    <td>
+                      <span class="status-pill status-${ev.confidence === 'alta' ? 'green' : (ev.confidence === 'baixa' ? 'red' : 'yellow')}">
+                        ${escapeHtml(ev.confidence || 'Média')}
+                      </span>
+                    </td>
+                    <td>${ev.confirmationRequired ? '<strong style="color:#DC2626;">Sim (Obrigatória)</strong>' : '<span style="color:#16A34A;">Dispensada</span>'}</td>
+                    <td>${escapeHtml(ev.technicalRationale || 'Validação presencial de campo recomendada')}</td>
+                  </tr>
+                `).join('')
+              ) : (
+                `
+                <tr>
+                  <td><strong>Disjuntor de Entrada</strong></td>
+                  <td><code>${confirmations.mainBreakerConfirmed ? `${confirmations.mainBreakerConfirmed}A` : 'Inscrição a aferir'}</code></td>
+                  <td><span class="status-pill status-yellow">${confirmations.mainBreakerConfirmed ? 'Média' : 'Baixa'}</span></td>
+                  <td><strong style="color:#DC2626;">Sim (Obrigatória)</strong></td>
+                  <td>Confirmar amperagem nominal diretamente no medidor da distribuidora</td>
+                </tr>
+                <tr>
+                  <td><strong>Barramento de Terra</strong></td>
+                  <td><code>${confirmations.groundingConfirmed === 'sim' ? 'Barramento visível' : 'Pendente'}</code></td>
+                  <td><span class="status-pill status-yellow">Média</span></td>
+                  <td><strong style="color:#DC2626;">Sim (Obrigatória)</strong></td>
+                  <td>A visualização física do barramento não atesta resistência ôhmica da malha</td>
+                </tr>
+                <tr>
+                  <td><strong>Espaço no Trilho DIN</strong></td>
+                  <td><code>${confirmations.spaceAvailableConfirmed === 'sim' ? 'Espaço aparente' : 'Pendente'}</code></td>
+                  <td><span class="status-pill status-yellow">Média</span></td>
+                  <td><strong style="color:#DC2626;">Sim (Obrigatória)</strong></td>
+                  <td>Verificar dimensões internas, barramento pente e aquecimento interno</td>
+                </tr>
+                `
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 7.3 FATOS OBSERVADOS, HIPÓTESES E INFORMAÇÕES INCONCLUSIVAS (Item 9 do Requisito) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; margin-bottom: 12px;">
+          <!-- FATOS OBSERVADOS -->
+          <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-top: 3px solid #16A34A; border-radius: 6px; padding: 10px 12px;">
+            <h5 style="font-size: 11.5px; font-weight: 700; color: #166534; margin: 0 0 6px 0;">
+              ✓ Fatos Observados (Evidências Comprovadas):
+            </h5>
+            <ul style="margin: 0; padding-left: 16px; font-size: 11px; color: #334155; line-height: 1.45;">
+              ${aiAnalysis && Array.isArray(aiAnalysis.factsObserved) && aiAnalysis.factsObserved.length > 0 ? (
+                aiAnalysis.factsObserved.map(f => `<li>${escapeHtml(f)}</li>`).join('')
+              ) : (
+                `
+                <li>Registro fotográfico anexado com ${photos ? photos.length : 0} fotografia(s) da instalação.</li>
+                <li>Local pretendido: ${formatInstallArea(localData.installArea)} em imóvel ${formatLocationType(localData.locationType)}.</li>
+                <li>Alimentação informada: ${formatSupplyType(localData.supplyType)}.</li>
+                ${confirmations.mainBreakerConfirmed && confirmations.mainBreakerConfirmed !== 'nao_sei' ? `<li>Disjuntor geral informado/observado: ${confirmations.mainBreakerConfirmed}A.</li>` : '<li>Inscrição do disjuntor geral pendente de confirmação nítida.</li>'}
+                `
+              )}
+            </ul>
+          </div>
+
+          <!-- HIPÓTESES TÉCNICAS -->
+          <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-top: 3px solid #2563EB; border-radius: 6px; padding: 10px 12px;">
+            <h5 style="font-size: 11.5px; font-weight: 700; color: #1E40AF; margin: 0 0 6px 0;">
+              💡 Hipóteses Técnicas Preliminares:
+            </h5>
+            <ul style="margin: 0; padding-left: 16px; font-size: 11px; color: #334155; line-height: 1.45;">
+              ${aiAnalysis && Array.isArray(aiAnalysis.hypotheses) && aiAnalysis.hypotheses.length > 0 ? (
+                aiAnalysis.hypotheses.map(h => `<li>${escapeHtml(h)}</li>`).join('')
+              ) : (
+                `
+                <li>Demanda contínua estimada de ${(parseInt(localData.vehicleCount, 10) || 1) * (localData.chargerType === 'tomada' ? 16 : 32)}A para ${localData.vehicleCount || 1} veículo(s).</li>
+                <li>Topologia recomendada em condutores de cobre com isolação 70°C/90°C e proteção DR Tipo A.</li>
+                <li>Fator de simultaneidade unitário (g = 1,0) para recarga veicular conforme ABNT NBR 17019.</li>
+                `
+              )}
+            </ul>
+          </div>
+
+          <!-- INFORMAÇÕES INCONCLUSIVAS -->
+          <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-top: 3px solid #D97706; border-radius: 6px; padding: 10px 12px;">
+            <h5 style="font-size: 11.5px; font-weight: 700; color: #B45309; margin: 0 0 6px 0;">
+              ❓ Informações Inconclusivas por Imagem:
+            </h5>
+            <ul style="margin: 0; padding-left: 16px; font-size: 11px; color: #334155; line-height: 1.45;">
+              ${aiAnalysis && Array.isArray(aiAnalysis.inconclusiveItems) && aiAnalysis.inconclusiveItems.length > 0 ? (
+                aiAnalysis.inconclusiveItems.map(item => `<li>${escapeHtml(item)}</li>`).join('')
+              ) : (
+                `
+                <li>Resistência de aterramento e impedância do PE (foto comprova apenas aspecto mecânico do barramento; ensaio com terrômetro ≤ 10Ω é mandatório).</li>
+                <li>Ausência de pontos quentes sob carga contínua (foto em luz visível identifica apenas danos já consumados, não substituindo termografia infravermelha).</li>
+                <li>Compatibilidade mecânica do barramento pente e profundidade útil da caixa para inserção dos novos módulos DIN.</li>
+                ${isSubsoloOuFechada ? '<li>Operabilidade hidráulica e pressurização do sistema de sprinklers no subsolo.</li>' : ''}
+                `
+              )}
+            </ul>
           </div>
         </div>
 
-        ${aiAnalysis ? `
-          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 6px; padding: 12px 14px;">
-            <h4 style="font-size: 12px; font-weight: 700; color: #1E293B; margin-top: 0; margin-bottom: 6px;">
-              🔍 Resultados Específicos Extraídos das Fotos pela IA:
-            </h4>
-            <p style="font-size: 12px; color: #1E293B; background: #F1F5F9; padding: 8px 12px; border-radius: 4px; margin-bottom: 8px;">
-              <strong>Parecer da IA:</strong> ${escapeHtml(aiAnalysis.summary || 'Análise visual concluída sem anomalias críticas registradas.')}
-            </p>
-            ${Array.isArray(aiAnalysis.identifiedBreakers) && aiAnalysis.identifiedBreakers.length > 0 ? `
-              <div style="font-size: 11.5px; margin-top: 6px;">
-                <strong>Disjuntores Identificados na Imagem:</strong>
-                <ul style="margin: 4px 0; padding-left: 18px; color: #475569;">
-                  ${aiAnalysis.identifiedBreakers.map(b => `
-                    <li><strong>${escapeHtml(b.label || 'Disjuntor')}:</strong> ${b.rating ? `${b.rating}A` : 'Amperagem não legível'} - ${escapeHtml(b.notes || 'Identificado no quadro')} (Confiança: ${escapeHtml(b.confidence || 'Média')})</li>
-                  `).join('')}
-                </ul>
-              </div>
-            ` : ''}
-            <div style="display: flex; gap: 16px; margin-top: 8px; font-size: 11.5px; color: #475569;">
-              <span>Espaço DIN no quadro: <strong>${aiAnalysis.hasDinSpace ? '✓ Identificado' : '✕ Limitado / Sem reserva'}</strong></span>
-              <span>Barramento de Aterramento: <strong>${aiAnalysis.groundingIdentified ? '✓ Identificado' : '❓ Não visível'}</strong></span>
-              <span>Risco Térmico Aparente: <strong>${aiAnalysis.thermalRiskDetected ? '⚠️ Detectado' : '✓ Não observado'}</strong></span>
-            </div>
-          </div>
-        ` : `
-          <div style="background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 6px; padding: 10px 14px; font-size: 11.5px; color: #64748B;">
-            ℹ️ <strong>Status do Processamento de Imagens:</strong> As fotos da vistoria foram registradas e arquivadas. Para ativação do processamento multimodal em tempo real na nuvem com OCR de disjuntores, configure a variável de ambiente <code>GEMINI_API_KEY</code> na Vercel. O diagnóstico técnico atual operou com o motor pericial de heurística estrita Ligvolt.
-          </div>
-        `}
+        <!-- 7.4 RECOMENDAÇÕES TÉCNICAS DE CAMPO -->
+        <div style="background: #F1F5F9; border-left: 4px solid #0F172A; border-radius: 4px; padding: 10px 14px; font-size: 11.5px; color: #1E293B;">
+          <strong>📋 Recomendações Técnicas para a Equipe de Vistoria Presencial:</strong>
+          <ul style="margin: 4px 0 0 0; padding-left: 18px; line-height: 1.5;">
+            ${aiAnalysis && Array.isArray(aiAnalysis.fieldRecommendations) && aiAnalysis.fieldRecommendations.length > 0 ? (
+              aiAnalysis.fieldRecommendations.map(rec => `<li>${escapeHtml(rec)}</li>`).join('')
+            ) : (
+              `
+              <li>Efetuar medição com terrômetro de quatro estacas ou alicímetro para validar resistência de aterramento ≤ 10 ohms.</li>
+              <li>Aferir corrente de pico da instalação simultânea nos horários de maior carga com alicate amperímetro TRMS.</li>
+              <li>Inspecionar visualmente o padrão de entrada e verificar conformidade dos cabos do ramal com a concessionária.</li>
+              <li>Verificar espaço e ventilação para o subquadro caso o quadro existente apresente aquecimento ou congestionamento.</li>
+              `
+            )}
+          </ul>
+        </div>
       </div>
 
       <!-- 8. EVIDÊNCIAS FOTOGRÁFICAS -->

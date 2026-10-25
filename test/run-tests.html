@@ -305,6 +305,53 @@
       const diagCase11 = SmartInspection.evaluateInspectionViability(inspCase11);
       assert(diagCase11.state === 'PRELIMINARMENTE_APTO' || diagCase11.state === 'APTO_COM_ADEQUACOES', 'Caso 11: 5 veículos avaliados com sucesso');
 
+      // CASO 12: OCR Ilegível não inventa disjuntor
+      const inspCase12 = {
+        localData: { locationType: 'residencia', installArea: 'garagem_aberta', supplyType: 'bifasica', voltagePreset: '127_220', vehicleCount: 1, chargerType: 'wallbox' },
+        confirmations: { mainBreakerConfirmed: 'nao_sei', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'sim', capacityVerified: 'sim', cbmerjSprinklers: 'nao_se_aplica' },
+        photos: []
+      };
+      const diagCase12 = SmartInspection.evaluateInspectionViability(inspCase12);
+      assert(diagCase12.problemsFound.some(p => p.title.includes('Capacidade do disjuntor')), 'Caso 12: Disjuntor ilegível não presume amperagem');
+
+      // CASO 13: Barramento PE visível requer medição ôhmica
+      const inspCase13 = {
+        localData: { locationType: 'comercio', installArea: 'garagem_aberta', supplyType: 'trifasica', voltagePreset: '220_380', vehicleCount: 2, chargerType: 'wallbox' },
+        confirmations: { mainBreakerConfirmed: '100', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'sim', capacityVerified: 'sim', cbmerjSprinklers: 'nao_se_aplica' },
+        photos: []
+      };
+      const diagCase13 = SmartInspection.evaluateInspectionViability(inspCase13);
+      assert(diagCase13.pendingVerifications.some(v => v.includes('10Ω') || v.includes('terrômetro')), 'Caso 13: Ensaio com terrômetro mandatório');
+
+      // CASO 14: Quadro sem espaço DIN requer subquadro
+      const inspCase14 = {
+        localData: { locationType: 'residencia', installArea: 'externa', supplyType: 'bifasica', voltagePreset: '127_220', vehicleCount: 1, chargerType: 'wallbox' },
+        confirmations: { mainBreakerConfirmed: '63', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'nao', exclusiveCircuitConfirmed: 'sim', capacityVerified: 'sim', cbmerjSprinklers: 'nao_se_aplica' },
+        photos: []
+      };
+      const diagCase14 = SmartInspection.evaluateInspectionViability(inspCase14);
+      assert(diagCase14.necessaryActions.some(a => a.includes('subquadro')), 'Caso 14: Subquadro auxiliar recomendado');
+
+      // CASO 15: Transparência e Seção 7 no Laudo
+      const inspCase15 = {
+        localData: { locationType: 'condominio', installArea: 'subsolo', supplyType: 'trifasica', voltagePreset: '220_380', vehicleCount: 2, chargerType: 'wallbox', cityState: 'Rio de Janeiro - RJ' },
+        confirmations: { mainBreakerConfirmed: '125', groundingConfirmed: 'sim', rainProtectionConfirmed: 'sim', spaceAvailableConfirmed: 'sim', exclusiveCircuitConfirmed: 'sim', capacityVerified: 'sim', cbmerjSprinklers: 'sim' },
+        aiAnalysis: {
+          modelUsed: 'Google Gemini 2.5 Flash',
+          summary: 'Quadro trifásico C125',
+          factsObserved: ['Disjuntor tripolar C125'],
+          hypotheses: ['Capacidade suficiente'],
+          inconclusiveItems: ['Resistência ôhmica <= 10Ω'],
+          fieldRecommendations: ['Medir aterramento'],
+          evidenceDetails: [{ element: 'Disjuntor Geral', observedInscription: 'C125', confidence: 'alta', confirmationRequired: true }]
+        },
+        photos: []
+      };
+      const diagCase15 = SmartInspection.evaluateInspectionViability(inspCase15);
+      const rep15 = SmartInspection.buildPreliminaryInspectionReportHTML(inspCase15, diagCase15);
+      assert(rep15.includes('Matriz de Transparência e Tripla Validação Técnica'), 'Caso 15: Matriz de Transparência presente');
+      assert(rep15.includes('Google Gemini 2.5 Flash'), 'Caso 15: Modelo Gemini 2.5 Flash discriminado');
+
       log(`\n====================================================`);
       log(`🏁 RESULTADO FINAL: ${passed} PASSARAM | ${failed} FALHARAM`, failed === 0 ? 'pass' : 'fail');
       log(`====================================================`);

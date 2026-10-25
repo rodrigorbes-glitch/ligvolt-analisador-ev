@@ -417,6 +417,180 @@ function runAllTests() {
   assert(report11Html.includes('Qtd. Veículos: <strong>5</strong>'), 'Laudo reflete quantidade customizada de 5 veículos');
   assert(report11Html.includes('Distância estimada: <strong>>50</strong>'), 'Laudo reflete distância longa');
 
+  // CASO 12: OCR de Disjuntor Ilegível - Não Inventar Amperagem
+  console.log('\n--- CASO 12: OCR de Disjuntor Ilegível (Não Inventar Amperagem) ---');
+  const inspCase12 = {
+    localData: {
+      locationType: 'residencia',
+      installArea: 'garagem_aberta',
+      supplyType: 'bifasica',
+      voltagePreset: '127_220',
+      vehicleCount: 1,
+      chargerType: 'wallbox'
+    },
+    confirmations: {
+      mainBreakerConfirmed: 'nao_sei', // ou 'ilegivel'
+      groundingConfirmed: 'sim',
+      rainProtectionConfirmed: 'sim',
+      spaceAvailableConfirmed: 'sim',
+      exclusiveCircuitConfirmed: 'sim',
+      capacityVerified: 'sim',
+      cbmerjSprinklers: 'nao_se_aplica'
+    },
+    aiAnalysis: {
+      summary: 'Foto dos disjuntores com caracteres embaçados por reflexo de luz.',
+      identifiedBreakers: [
+        { type: 'geral', rating: 'ilegivel', curve: 'nao_identificada', confidence: 'baixa' }
+      ],
+      mainBreakerEstimated: null,
+      photoQualityFeedback: [
+        { photoIndex: 1, quality: 'desfocada', tip: 'Tire nova foto aproximada e sem reflexo' }
+      ]
+    },
+    photos: []
+  };
+  const diagCase12 = SmartInspection.evaluateInspectionViability(inspCase12);
+  assert(diagCase12.problemsFound.some(p => p.title.includes('Capacidade do disjuntor')), 'Identifica disjuntor não comprovado sem inventar valor');
+  assert(diagCase12.pendingVerifications.some(v => v.includes('medidor da concessionária')), 'Ação pendente de verificação no medidor registrada');
+
+  // CASO 13: Barramento de Terra Visível Exige Medição Instrumental
+  console.log('\n--- CASO 13: Barramento de Terra Visível Exige Medição Ôhmica Presencial ---');
+  const inspCase13 = {
+    localData: {
+      locationType: 'comercio',
+      installArea: 'garagem_aberta',
+      supplyType: 'trifasica',
+      voltagePreset: '220_380',
+      vehicleCount: 2,
+      chargerType: 'wallbox'
+    },
+    confirmations: {
+      mainBreakerConfirmed: '100',
+      groundingConfirmed: 'sim',
+      rainProtectionConfirmed: 'sim',
+      spaceAvailableConfirmed: 'sim',
+      exclusiveCircuitConfirmed: 'sim',
+      capacityVerified: 'sim',
+      cbmerjSprinklers: 'nao_se_aplica'
+    },
+    aiAnalysis: {
+      groundingIdentified: true,
+      groundingNote: 'Barramento PE visível no quadro elétrico.',
+      thermalRiskDetected: false
+    },
+    photos: []
+  };
+  const diagCase13 = SmartInspection.evaluateInspectionViability(inspCase13);
+  assert(diagCase13.pendingVerifications.some(v => v.includes('10Ω') || v.includes('terrômetro')), 'Mesmo com barramento PE visível, ensaio com terrômetro (<=10Ω) permanece mandatório');
+
+  // CASO 14: Quadro Lotado Sem Espaço DIN Exige Subquadro
+  console.log('\n--- CASO 14: Quadro Sem Espaço DIN Exige Subquadro Auxiliar ---');
+  const inspCase14 = {
+    localData: {
+      locationType: 'residencia',
+      installArea: 'externa',
+      supplyType: 'bifasica',
+      voltagePreset: '127_220',
+      vehicleCount: 1,
+      chargerType: 'wallbox'
+    },
+    confirmations: {
+      mainBreakerConfirmed: '63',
+      groundingConfirmed: 'sim',
+      rainProtectionConfirmed: 'sim',
+      spaceAvailableConfirmed: 'nao', // Quadro lotado
+      exclusiveCircuitConfirmed: 'sim',
+      capacityVerified: 'sim',
+      cbmerjSprinklers: 'nao_se_aplica'
+    },
+    photos: []
+  };
+  const diagCase14 = SmartInspection.evaluateInspectionViability(inspCase14);
+  assert(diagCase14.problemsFound.some(p => p.title.includes('espaço físico')), 'Registra falta de espaço no quadro');
+  assert(diagCase14.necessaryActions.some(a => a.includes('subquadro')), 'Recomenda instalação de subquadro auxiliar');
+
+  // CASO 15: Laudo com Matriz de Transparência e Seção 7 Discriminada (IA vs Usuário vs Validação)
+  console.log('\n--- CASO 15: Auditoria de Evidências e Transparência no Laudo Pericial ---');
+  const inspCase15 = {
+    localData: {
+      locationType: 'condominio',
+      installArea: 'subsolo',
+      supplyType: 'trifasica',
+      voltagePreset: '220_380',
+      vehicleCount: 2,
+      chargerType: 'wallbox',
+      cityState: 'Rio de Janeiro - RJ'
+    },
+    confirmations: {
+      mainBreakerConfirmed: '125',
+      groundingConfirmed: 'sim',
+      rainProtectionConfirmed: 'sim',
+      spaceAvailableConfirmed: 'sim',
+      exclusiveCircuitConfirmed: 'sim',
+      capacityVerified: 'sim',
+      cbmerjSprinklers: 'sim'
+    },
+    aiAnalysis: {
+      modelUsed: 'Google Gemini 2.5 Flash',
+      summary: 'Quadro trifásico com disjuntor tripolar C125 e barramento PE aparente.',
+      factsObserved: [
+        'Disjuntor tripolar padrão DIN com inscrição C125 nítida',
+        'Barramento de cobre para condutor PE fixado na carcaça metálica'
+      ],
+      hypotheses: [
+        'Capacidade de fornecimento adequada para 2 Wallboxes de 7,4 kW',
+        'Necessidade de ramais independentes de 6mm² em eletroduto metálico'
+      ],
+      inconclusiveItems: [
+        'Resistência de aterramento da malha (requer terrômetro <= 10 ohms)',
+        'Pressurização hidráulica dos bicos de sprinklers no subsolo'
+      ],
+      fieldRecommendations: [
+        'Efetuar ensaio ôhmico da malha de aterramento',
+        'Verificar válvula de comando dos chuveiros automáticos'
+      ],
+      evidenceDetails: [
+        {
+          element: 'Disjuntor Geral',
+          observedInscription: 'C125 400V 10kA',
+          confidence: 'alta',
+          confirmationRequired: true,
+          technicalRationale: 'Confirmar valor no medidor'
+        }
+      ],
+      identifiedBreakers: [
+        { type: 'geral', rating: '125', curve: 'Curva C', confidence: 'alta' }
+      ],
+      mainBreakerEstimated: '125',
+      hasDinSpace: true,
+      apparentAvailableModules: 6,
+      groundingIdentified: true,
+      thermalRiskDetected: false,
+      environment: {
+        apparentArea: 'subsolo',
+        sprinklersApparent: true,
+        recommendedEnclosure: 'IP54 abrigado'
+      }
+    },
+    photos: [
+      { id: '1', categoryName: 'Foto Geral', dataUrl: 'data:image/jpeg;base64,abc', timestamp: '24/10/2026' }
+    ],
+    clientMeta: { clientName: 'Edifício Vista Mar', address: 'Av. Atlântica, 1000', inspectorName: 'Eng. Roberto Lima' }
+  };
+  const diagCase15 = SmartInspection.evaluateInspectionViability(inspCase15);
+  const report15Html = SmartInspection.buildPreliminaryInspectionReportHTML(inspCase15, diagCase15);
+
+  assert(report15Html.includes('Matriz de Transparência e Tripla Validação Técnica'), 'Matriz de Transparência presente');
+  assert(report15Html.includes('Identificação por IA (Visão)'), 'Coluna IA presente na matriz');
+  assert(report15Html.includes('Declarado pelo Usuário'), 'Coluna Usuário presente na matriz');
+  assert(report15Html.includes('Validação Presencial Obrigatória'), 'Coluna Validação Presencial presente na matriz');
+  assert(report15Html.includes('Google Gemini 2.5 Flash'), 'Modelo Google Gemini 2.5 Flash registrado no laudo');
+  assert(report15Html.includes('Fatos Observados (Evidências Comprovadas)'), 'Subseção Fatos Observados presente');
+  assert(report15Html.includes('Hipóteses Técnicas Preliminares'), 'Subseção Hipóteses presente');
+  assert(report15Html.includes('Informações Inconclusivas por Imagem'), 'Subseção Inconclusivos presente');
+  assert(report15Html.includes('Recomendações Técnicas para a Equipe de Vistoria Presencial'), 'Subseção Recomendações Técnicas presente');
+  assert(report15Html.includes('C125 400V 10kA'), 'Inscrição observada registrada na tabela de evidências');
+
   // RESUMO DOS TESTES
   console.log('\n====================================================');
   console.log(`🏁 RESULTADO FINAL: ${passed} PASSARAM | ${failed} FALHARAM`);

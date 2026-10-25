@@ -1,7 +1,7 @@
 /**
  * LIGVOLT - Vercel Serverless Function: Análise Multimodal de Fotos de Vistoria
  * Endpoint: /api/analyze-photos
- * Suporta Google Gemini Multimodal Vision API (gemini-2.5-flash / gemini-1.5-flash)
+ * Suporta Google Gemini Multimodal Vision API (gemini-2.5-flash com fallback para gemini-2.0-flash)
  */
 
 module.exports = async function handler(req, res) {
@@ -27,7 +27,8 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         success: false,
         noApiKey: true,
-        message: 'Chave da API de IA não configurada no servidor Vercel. Você pode prosseguir com a vistoria guiada e confirmação simplificada.'
+        modelUsed: 'Heurística Pericial Local (Offline)',
+        message: 'Chave da API de IA não configurada no servidor Vercel. O sistema operará com o motor pericial de heurística local.'
       });
     }
 
@@ -83,65 +84,108 @@ CONTEXTO DA INSTALAÇÃO (INFORMADO PELO USUÁRIO):
 `;
 
     const systemPrompt = `
-Você é o assistente pericial de visão computacional do LIGVOLT, especializado em triagem de infraestrutura elétrica para recarga de veículos elétricos (ABNT NBR 5410, NBR 17019 e Nota CBMERJ 326/2025).
+Você é o assistente pericial de visão computacional do LIGVOLT, especializado em triagem técnica de infraestrutura elétrica para recarga de veículos elétricos (ABNT NBR 5410, NBR 17019 e Nota Técnica CBMERJ 326/2025).
 
-Seu papel é analisar visualmente as fotografias do quadro elétrico, disjuntores e ambiente enviadas pelo vistoriador e identificar elementos objetivos, com prudência técnica.
+Seu papel é analisar com estrito rigor pericial as fotografias enviadas e extrair evidências observadas.
 
-REGRA FUNDAMENTAL DE SEGURANÇA:
-- NUNCA declare uma instalação segura ou apta apenas pela fotografia.
-- NUNCA presuma integridade de aterramento, bitola de cabos embutidos ou capacidade disponível da rede sem medição.
-- Se um componente não estiver claramente legível, indique "não legível" ou "não identificado - necessita verificação presencial".
-- Avalie indícios visuais de aquecimento (fios amarelados/escurecidos, bornes queimados), espaço reserva no quadro, presença visível de DR e DPS, e condições do local (ex: subsolo sem sprinklers aparentes).
+DIRETRIZES FUNDAMENTAIS DE SEGURANÇA E RIGOR TÉCNICO:
+1. OCR APRIMORADO E PRUDÊNCIA:
+   - Leia exclusivamente inscrições que estiverem nítidas no corpo dos disjuntores (ex: C32, C40, C50, C63, C100, 400V, 5kA/6kA).
+   - NUNCA invente, presuma ou estime amperagens ou curvas quando a foto estiver embaçada, distante ou com reflexos.
+   - Se os caracteres estiverem ilegíveis ou duvidosos, defina explicitamente "rating": "ilegivel", "confidence": "baixa" e solicite nova foto detalhada com boa iluminação nas observações de qualidade.
 
-Analise as ${imageParts.length} imagens e responda ESTRITAMENTE em formato JSON (sem markdown, sem backticks, sem texto antes ou depois) seguindo exatamente este modelo:
+2. ATERRAMENTO (CONDIÇÃO CRÍTICA):
+   - A visualização de barramento de cobre ou condutor verde/amarelo atesta unicamente a presença física aparente de barramento PE no quadro.
+   - NUNCA declare o aterramento como "adequado" ou "conforme" apenas pela foto. A integridade da malha, equipotencialização e resistência de aterramento (<= 10 ohms) exigem obrigatoriamente medição instrumental presencial com terrômetro/alicímetro.
+
+3. RISCO TÉRMICO E TERMOGRAFIA:
+   - Uma fotografia convencional no espectro visível detecta unicamente danos térmicos já consumados (ex: bornes derretidos, oxidação severa, condutores escurecidos).
+   - NUNCA declare "ausência de risco térmico". A ausência de marcas superficiais não atesta ausência de pontos quentes internos sob carga contínua (exige inspeção termográfica com câmera infravermelha sob carga).
+
+4. ESPAÇO FÍSICO NO QUADRO (TRILHO DIN):
+   - Estime os módulos DIN aparentes disponíveis, mas esclareça que a aprovação para instalação de novos módulos (DR Tipo A e DPS Classe II) depende de validação presencial das dimensões internas, barramento pente, bornes e ausência de obstruções traseiras.
+
+5. AMBIENTE E PROTEÇÃO CONTRA INCÊNDIO:
+   - Avalie visualmente sinais de umidade aparente, poeira, intempéries e rota de cabos.
+   - Em garagens subterrâneas ou fechadas, verifique a presença visual aparente de tubulação e bicos de chuveiros automáticos (sprinklers) conforme CBMERJ 326/2025, ressalvando que a foto não atesta a operabilidade hidráulica do sistema de incêndio.
+   - Não imponha grau IP universal sem necessidade técnica (locais cobertos aceitam IP44/IP54 conforme NBR 17019; ao ar livre direto exige IP65).
+
+Responda ESTRITAMENTE em formato JSON (sem markdown, sem blocos de texto antes ou depois) seguindo exatamente este modelo:
 
 {
-  "summary": "Resumo objetivo e em linguagem simples do que foi observado nas fotos (máximo 2 a 3 frases curtas).",
+  "summary": "Resumo pericial objetivo do que foi observado nas imagens (2 a 3 frases).",
+  "factsObserved": [
+    "Fato objetivo 1 comprovado visualmente pela foto",
+    "Fato objetivo 2 comprovado visualmente pela foto"
+  ],
+  "hypotheses": [
+    "Hipótese técnica preliminar 1 baseada nas evidências visíveis",
+    "Hipótese técnica preliminar 2"
+  ],
+  "inconclusiveItems": [
+    "Item que não pode ser concluído por foto (ex: resistência ôhmica de aterramento)",
+    "Item inconclusivo (ex: sobreaquecimento interno de conexões sob carga contínua)"
+  ],
   "identifiedBreakers": [
     {
       "type": "geral" ou "ramal",
-      "rating": "ex: 63A, 50A, 40A ou não legível",
-      "poles": "Tripolar" ou "Bipolar" ou "Monopolar" ou "Não identificado",
+      "rating": "ex: 50A ou ilegivel",
+      "curve": "Curva C" ou "Curva B" ou "nao_identificada",
+      "poles": "Bipolar" ou "Tripolar" ou "Monopolar" ou "Nao identificado",
       "confidence": "alta" ou "media" ou "baixa",
-      "notes": "detalhes observados"
+      "notes": "Descrição detalhada do elemento e legibilidade"
     }
   ],
-  "mainBreakerEstimated": "63A" ou "50A" ou null se não legível,
+  "evidenceDetails": [
+    {
+      "photoCategory": "disjuntores" ou "quadro_geral" ou "padrao_entrada" ou "local_vaga",
+      "element": "Identificação do elemento analisado",
+      "observedInscription": "Texto/números exatos visíveis na foto ou 'Ilegível'",
+      "confidence": "alta" ou "media" ou "baixa",
+      "confirmationRequired": true,
+      "technicalRationale": "Motivo da necessidade de confirmação presencial"
+    }
+  ],
+  "mainBreakerEstimated": "50A" ou null se ilegível,
+  "hasDinSpace": true ou false ou null,
+  "apparentAvailableModules": 4,
+  "groundingIdentified": true ou false,
+  "groundingNote": "Presença física aparente de barramento PE. Não comprova eficácia ou resistência de aterramento sem teste instrumental.",
+  "thermalRiskDetected": false,
+  "thermalDisclaimer": "Fotografia em luz visível identifica apenas danos já consumados. Não atesta ausência de pontos quentes sob carga.",
   "drIdentified": {
     "detected": true ou false,
     "confidence": "alta" ou "media" ou "baixa",
-    "notes": "ex: DR bipolar visível / Nenhum DR aparente no quadro"
+    "notes": "Status de DR visível"
   },
   "dpsIdentified": {
     "detected": true ou false,
     "confidence": "alta" ou "media" ou "baixa",
-    "notes": "ex: DPS classe II visível no barramento / Não visível"
+    "notes": "Status de DPS visível"
   },
-  "panelCondition": {
-    "status": "adequado" ou "atencao" ou "critico",
-    "spaceAvailable": "muito" ou "pouco" ou "nenhum" ou "nao_identificado",
-    "signsOfDamage": true ou false,
-    "notes": "observações sobre organização, limpeza e integridade física"
+  "environment": {
+    "apparentArea": "garagem_aberta" ou "subsolo" ou "externa",
+    "sprinklersApparent": true ou false ou "nao_visivel",
+    "weatherExposure": "coberto" ou "exposto" ou "parcial",
+    "recommendedEnclosure": "IP44/IP54 abrigado" ou "IP65 ao tempo"
   },
-  "apparentRisks": [
-    {
-      "risk": "descrição do risco",
-      "severity": "critica" ou "necessaria" ou "recomendada",
-      "recommendation": "ação a tomar"
-    }
+  "fieldRecommendations": [
+    "Ação técnica recomendada 1 a ser checada presencialmente",
+    "Ação técnica recomendada 2"
   ],
   "photoQualityFeedback": [
     {
       "photoIndex": 1,
-      "quality": "boa" ou "escura" ou "desfocada" ou "muito_distante",
-      "tip": "dica se precisar de foto melhor"
+      "quality": "boa" ou "desfocada" ou "escura" ou "ilegivel",
+      "tip": "Dica caso seja necessária foto complementar mais nítida ou aproximada"
     }
   ]
 }
 `;
 
-    // Chamada à API Gemini (Google AI Studio)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // Chamada à API Gemini com modelo recente suportado (Google AI Studio)
+    let usedModel = 'gemini-2.5-flash';
+    let geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const requestBody = {
       contents: [
@@ -165,10 +209,22 @@ Analise as ${imageParts.length} imagens e responda ESTRITAMENTE em formato JSON 
       body: JSON.stringify(requestBody)
     });
 
-    // Se o modelo 2.5 não estiver disponível na chave, tenta 1.5-flash como fallback
-    if (!response.ok && response.status === 404) {
-      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Fallback para modelo multimodal estável recente: gemini-2.0-flash
+    if (!response.ok && (response.status === 404 || response.status === 400)) {
+      usedModel = 'gemini-2.0-flash';
+      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
       response = await fetch(fallbackUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+    }
+
+    // Segundo fallback caso gemini-2.0-flash retorne 404
+    if (!response.ok && response.status === 404) {
+      usedModel = 'gemini-2.5-pro';
+      const proUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+      response = await fetch(proUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -212,7 +268,8 @@ Analise as ${imageParts.length} imagens e responda ESTRITAMENTE em formato JSON 
 
     return res.status(200).json({
       success: true,
-      analysis: parsedResult
+      analysis: parsedResult,
+      modelUsed: usedModel
     });
 
   } catch (err) {
