@@ -1914,9 +1914,6 @@
     state.distanceStatus = loc.distanceApprox === '>50' ? 'confirmado' : 'sugerido';
     const distInput = document.getElementById('inputDistance');
     if (distInput) distInput.value = state.distance;
-    state.distanceStatus = 'sugerido';
-    const distInput = document.getElementById('inputDistance');
-    if (distInput) distInput.value = state.distance;
 
     // Disjuntor geral
     if (conf.mainBreakerConfirmed && conf.mainBreakerConfirmed !== 'nao_sei') {

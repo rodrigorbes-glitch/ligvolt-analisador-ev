@@ -634,9 +634,9 @@ document.addEventListener('DOMContentLoaded', function () {
     loc.supplyType = getRadioVal('inspSupplyType') || 'bifasica';
     const activeVoltBtn = document.querySelector('#inspVoltageOptionsContainer .voltage-pill-btn.active');
     if (activeVoltBtn) loc.voltagePreset = activeVoltBtn.dataset.val;
-    const vfnInput = document.getElementById('inspCustomVfn');
+    const vfnInput = document.getElementById('inspCustomVfn') || document.getElementById('inspInputVoltageFN');
     if (vfnInput) loc.customVfn = parseFloat(vfnInput.value) || 127;
-    const vffInput = document.getElementById('inspCustomVff');
+    const vffInput = document.getElementById('inspCustomVff') || document.getElementById('inspInputVoltageFF');
     if (vffInput) loc.customVff = parseFloat(vffInput.value) || 220;
 
     const vRadio = getRadioVal('inspVehicleCount');
@@ -677,9 +677,9 @@ document.addEventListener('DOMContentLoaded', function () {
     setRadio('inspSupplyType', loc.supplyType || 'bifasica');
     UI.renderStep1VoltageOptions(loc.supplyType || 'bifasica', loc.voltagePreset || '127_220');
 
-    const vfnInput = document.getElementById('inspCustomVfn');
+    const vfnInput = document.getElementById('inspCustomVfn') || document.getElementById('inspInputVoltageFN');
     if (vfnInput && loc.customVfn) vfnInput.value = loc.customVfn;
-    const vffInput = document.getElementById('inspCustomVff');
+    const vffInput = document.getElementById('inspCustomVff') || document.getElementById('inspInputVoltageFF');
     if (vffInput && loc.customVff) vffInput.value = loc.customVff;
 
     const vBox = document.getElementById('inspCustomVehicleBox');
@@ -785,7 +785,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  const inspVfn = document.getElementById('inspCustomVfn');
+  const inspVfn = document.getElementById('inspCustomVfn') || document.getElementById('inspInputVoltageFN');
   if (inspVfn) {
     inspVfn.addEventListener('input', function () {
       UI.inspectionState.localData.customVfn = parseFloat(this.value) || 127;
@@ -794,7 +794,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  const inspVff = document.getElementById('inspCustomVff');
+  const inspVff = document.getElementById('inspCustomVff') || document.getElementById('inspInputVoltageFF');
   if (inspVff) {
     inspVff.addEventListener('input', function () {
       UI.inspectionState.localData.customVff = parseFloat(this.value) || 220;
