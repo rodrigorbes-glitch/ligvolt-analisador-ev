@@ -831,6 +831,191 @@
     `;
   }
 
+  /**
+   * Constrói o Relatório / Levantamento Técnico Simplificado de Campo
+   * Focado, conciso, ideal para operador de campo, cliente e impressão direta (1-2 páginas)
+   */
+  function buildSimplifiedFieldSurveyHTML(inspectionState, diagnosticResult) {
+    const { localData = {}, confirmations = {}, aiAnalysis = {}, photos = [], clientMeta = {} } = inspectionState || {};
+    const diag = diagnosticResult || {
+      state: 'NECESSITA_VERIFICACAO',
+      badge: 'NECESSITA VERIFICAÇÃO',
+      headline: 'Avaliação técnica pendente',
+      summary: 'Dados preliminares insuficientes para conclusão automática.',
+      criticalActions: [],
+      necessaryActions: [],
+      recommendedActions: []
+    };
+
+    const dateFormatted = new Date().toLocaleDateString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    const client = clientMeta.clientName || 'Cliente não identificado';
+    const address = clientMeta.address || localData.cityState || 'Endereço não informado';
+    const inspector = clientMeta.inspectorName || 'Vistoriador de Campo / Ligvolt';
+    const notes = clientMeta.notes || '';
+
+    let badgeBg = '#15803D';
+    let badgeColor = '#FFFFFF';
+    let badgeText = 'LOCAL APTO PARA INSTALAÇÃO';
+    let badgeBorder = '#16A34A';
+
+    if (diag.state === 'NAO_APTO') {
+      badgeBg = '#DC2626';
+      badgeColor = '#FFFFFF';
+      badgeText = 'NÃO APTO NO MOMENTO';
+      badgeBorder = '#DC2626';
+    } else if (diag.state === 'APTO_COM_ADEQUACOES') {
+      badgeBg = '#D97706';
+      badgeColor = '#FFFFFF';
+      badgeText = 'APTO COM ADEQUAÇÕES PRÉVIAS';
+      badgeBorder = '#D97706';
+    } else if (diag.state === 'NECESSITA_VERIFICACAO') {
+      badgeBg = '#475569';
+      badgeColor = '#FFFFFF';
+      badgeText = 'NECESSITA VERIFICAÇÃO EM VISITA';
+      badgeBorder = '#475569';
+    }
+
+    // Grid de fotos compacto (máximo 4 a 6 fotos em 2 colunas com tamanho controlado para impressão)
+    const photosCompactHtml = photos && photos.length > 0 ? `
+      <div class="report-section" style="page-break-inside: avoid; break-inside: avoid; margin-bottom: 12px;">
+        <h3 class="section-title" style="margin-bottom: 8px;">📷 Registro Fotográfico Essencial do Local (${photos.length} foto${photos.length > 1 ? 's' : ''})</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+          ${photos.map((p, idx) => `
+            <div style="border: 1px solid #CBD5E1; border-radius: 6px; padding: 6px; background: #FFFFFF; page-break-inside: avoid; break-inside: avoid;">
+              <div style="width: 100%; height: 130px; background: #0F172A; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <img src="${p.dataUrl}" alt="${escapeHtml(p.categoryName)}" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;" />
+              </div>
+              <div style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 11px; color: #0F172A;">Foto ${idx + 1}: ${escapeHtml(p.categoryName)}</strong>
+                <span style="font-size: 9.5px; color: #64748B;">${escapeHtml(p.timestamp ? p.timestamp.split(' ')[0] : 'Campo')}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : `
+      <div class="report-section" style="page-break-inside: avoid; break-inside: avoid; margin-bottom: 12px;">
+        <h3 class="section-title" style="margin-bottom: 8px;">📷 Registro Fotográfico</h3>
+        <p style="font-size: 11.5px; color: #64748B; background: #F8FAFC; border: 1px dashed #CBD5E1; padding: 8px 12px; border-radius: 4px; margin: 0;">
+          Nenhuma fotografia anexada. Recomendado anexar fotos do quadro elétrico e da vaga no Passo 2 da Vistoria Guiada.
+        </p>
+      </div>
+    `;
+
+    // Resumo de ações práticas essenciais (máx. 4 prioritárias para síntese rápida)
+    const crit = (diag.criticalActions || []).map(a => ({ type: 'critica', label: 'Crítica', text: a, color: '#DC2626', bg: '#FEF2F2' }));
+    const nec = (diag.necessaryActions || []).map(a => ({ type: 'necessaria', label: 'Necessária', text: a, color: '#D97706', bg: '#FFFBEB' }));
+    const rec = (diag.recommendedActions || []).slice(0, 2).map(a => ({ type: 'recomendada', label: 'Recomendada', text: a, color: '#16A34A', bg: '#F0FDF4' }));
+    const allActions = [...crit, ...nec, ...rec];
+
+    return `
+    <div class="report-document simplified-survey-report" id="printableSimplifiedSurvey">
+      <!-- CABEÇALHO COMPACTO -->
+      <div class="report-header" style="border-bottom: 2px solid #0E1116; padding-bottom: 8px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div class="brand-logo" style="display: flex; align-items: center; gap: 8px;">
+            <span class="logo-symbol" style="font-size: 20px;">⚡</span>
+            <span class="logo-name" style="font-size: 17px; font-weight: 800; letter-spacing: -0.5px;">LIG<span style="color: #16A34A;">VOLT</span></span>
+            <span style="font-size: 10.5px; background: #0E1116; color: #FFFFFF; padding: 2px 7px; border-radius: 4px; font-weight: 700;">LEVANTAMENTO TÉCNICO SIMPLIFICADO</span>
+          </div>
+          <div style="text-align: right; font-size: 10.5px; color: #475569;">
+            <div><strong>Emissão:</strong> ${dateFormatted}</div>
+            <div><strong>Protocolo:</strong> LV-CAMPO-${Date.now().toString().slice(-6)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATUS DE VIABILIDADE EM DESTAQUE EXECUTIVO -->
+      <div style="background: ${badgeBg}12; border: 2px solid ${badgeBorder}; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+          <div>
+            <span style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px;">
+              ${badgeText}
+            </span>
+            <h4 style="margin: 6px 0 2px 0; font-size: 14px; color: #0F172A; font-weight: 700;">${escapeHtml(diag.headline)}</h4>
+          </div>
+        </div>
+        <p style="margin: 4px 0 0 0; font-size: 11.5px; line-height: 1.4; color: #334155;">
+          ${escapeHtml(diag.summary)}
+        </p>
+      </div>
+
+      <!-- TABELA RESUMIDA DA INFRAESTRUTURA -->
+      <div class="report-section" style="page-break-inside: avoid; break-inside: avoid; margin-bottom: 12px;">
+        <h3 class="section-title" style="margin-bottom: 6px;">📋 Ficha Resumida do Local e Instalação</h3>
+        <table class="report-table" style="font-size: 11px;">
+          <tr>
+            <td style="width: 20%; background: #F8FAFC;"><strong>Cliente:</strong></td>
+            <td style="width: 30%;">${escapeHtml(client)}</td>
+            <td style="width: 20%; background: #F8FAFC;"><strong>Local / Imóvel:</strong></td>
+            <td style="width: 30%;">${formatLocationType(localData.locationType)} (${formatInstallArea(localData.installArea)})</td>
+          </tr>
+          <tr>
+            <td style="background: #F8FAFC;"><strong>Endereço / Cidade:</strong></td>
+            <td>${escapeHtml(address)}</td>
+            <td style="background: #F8FAFC;"><strong>Vagas / Veículos:</strong></td>
+            <td>${localData.vehicleCount || 1} veículo(s) simultâneo(s)</td>
+          </tr>
+          <tr>
+            <td style="background: #F8FAFC;"><strong>Alimentação Elétrica:</strong></td>
+            <td>${formatSupplyType(localData.supplyType)} | ${formatVoltage(localData.voltagePreset, localData.customVfn, localData.customVff)}</td>
+            <td style="background: #F8FAFC;"><strong>Carregador / Distância:</strong></td>
+            <td>${formatChargerType(localData.chargerType)} (~${escapeHtml(localData.distanceApprox || '10-25m')})</td>
+          </tr>
+          <tr>
+            <td style="background: #F8FAFC;"><strong>Vistoriador Responsável:</strong></td>
+            <td colspan="3">${escapeHtml(inspector)}${notes ? ` — <em>Obs: ${escapeHtml(notes)}</em>` : ''}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- PONTOS ESSENCIAIS DE ATENÇÃO E PROVIDÊNCIAS -->
+      <div class="report-section" style="page-break-inside: avoid; break-inside: avoid; margin-bottom: 12px;">
+        <h3 class="section-title" style="margin-bottom: 6px;">⚡ Providências Técnicas Indispensáveis para Instalar</h3>
+        ${allActions.length > 0 ? `
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            ${allActions.map(act => `
+              <div style="padding: 6px 9px; background: ${act.bg}; border-left: 3px solid ${act.color}; border-radius: 4px; font-size: 11px; display: flex; align-items: flex-start; gap: 8px;">
+                <span style="background: ${act.color}; color: #FFFFFF; font-size: 9.5px; font-weight: 700; padding: 1px 5px; border-radius: 3px; white-space: nowrap; margin-top: 1px;">
+                  ${act.label}
+                </span>
+                <span style="color: #0F172A; line-height: 1.3;">${escapeHtml(act.text)}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <p style="font-size: 11.5px; color: #166534; background: #F0FDF4; padding: 6px 10px; border-radius: 4px; margin: 0;">
+            ✓ Instalação padrão sem impedimentos prévios identificados. Seguir com circuito exclusivo e proteção DR Tipo A.
+          </p>
+        `}
+      </div>
+
+      <!-- FOTOGRAFIAS ESSENCIAIS -->
+      ${photosCompactHtml}
+
+      <!-- TERMO DE CONSTATAÇÃO E ASSINATURAS -->
+      <div class="report-section" style="page-break-inside: avoid; break-inside: avoid; margin-top: 12px; border-top: 1px solid #CBD5E1; padding-top: 10px;">
+        <p style="font-size: 9.5px; color: #64748B; line-height: 1.35; margin-bottom: 14px;">
+          * Este levantamento técnico simplificado registra as condições verificadas em campo no momento da vistoria, servindo de base para homologação e execução conforme as normas ABNT NBR 5410, NBR 17019 e requisitos da concessionária de energia.
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 12px;">
+          <div style="border-top: 1px solid #0F172A; padding-top: 3px; text-align: center;">
+            <strong style="font-size: 10.5px; color: #0F172A; display: block;">${escapeHtml(inspector)}</strong>
+            <span style="font-size: 9.5px; color: #64748B;">Responsável pelo Levantamento de Campo</span>
+          </div>
+          <div style="border-top: 1px solid #0F172A; padding-top: 3px; text-align: center;">
+            <strong style="font-size: 10.5px; color: #0F172A; display: block;">${escapeHtml(client)}</strong>
+            <span style="font-size: 9.5px; color: #64748B;">Cliente / Representante no Local</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    `;
+  }
+
   function formatLocationType(type) {
     const map = {
       residencia: 'Residência Unifamiliar (Casa)',
@@ -901,6 +1086,7 @@
     PHOTO_CATEGORIES,
     compressImage,
     evaluateInspectionViability,
-    buildPreliminaryInspectionReportHTML
+    buildPreliminaryInspectionReportHTML,
+    buildSimplifiedFieldSurveyHTML
   };
 }));

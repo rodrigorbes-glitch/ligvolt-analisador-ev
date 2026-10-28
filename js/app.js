@@ -550,6 +550,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  const docTypeSelectMobile = document.getElementById('docTypeSelectMobile');
+  if (docTypeSelectMobile) {
+    docTypeSelectMobile.addEventListener('change', function () {
+      UI.openReportModal(this.value);
+    });
+  }
+
   const metaInputs = document.querySelectorAll('.meta-field input');
   metaInputs.forEach(input => {
     input.addEventListener('input', function () {
@@ -834,6 +841,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnEvaluateFinal = document.getElementById('btnEvaluateFinal');
   if (btnEvaluateFinal) {
     btnEvaluateFinal.addEventListener('click', () => UI.renderInspectionStep(4));
+  }
+
+  const btnGenerateSimplifiedReport = document.getElementById('btnGenerateSimplifiedReport');
+  if (btnGenerateSimplifiedReport) {
+    btnGenerateSimplifiedReport.addEventListener('click', () => UI.openReportModal('vistoria_resumida'));
   }
 
   const btnGenerateInspectionPDF = document.getElementById('btnGenerateInspectionPDF');

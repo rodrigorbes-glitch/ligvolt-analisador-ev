@@ -907,7 +907,7 @@
   /**
    * Abre o Modal com o Documento Selecionado
    */
-  function openReportModal(docType = 'relatorio') {
+  function openReportModal(docType = 'vistoria_resumida') {
     state.activeDocType = docType;
     const { calcResult, diagnostic } = recalculateAndRender();
     const modal = document.getElementById('reportModal');
@@ -917,6 +917,13 @@
     syncMetadataFromInputs();
     renderActiveDocument(calcResult, diagnostic);
 
+    // Sincroniza seletor mobile
+    const selectMobile = document.getElementById('docTypeSelectMobile');
+    if (selectMobile) {
+      selectMobile.value = state.activeDocType;
+    }
+
+    // Sincroniza abas desktop
     document.querySelectorAll('.doc-tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.doc === state.activeDocType);
     });
@@ -929,7 +936,37 @@
     const content = document.getElementById('reportModalContent');
     if (!content) return;
 
-    if (state.activeDocType === 'vistoria_preliminar') {
+    if (state.activeDocType === 'vistoria_resumida') {
+      const diagResult = inspectionState.diagnosticResult || (SmartInspection ? SmartInspection.evaluateInspectionViability(inspectionState) : null);
+      if (SmartInspection && diagResult) {
+        content.innerHTML = SmartInspection.buildSimplifiedFieldSurveyHTML({
+          ...inspectionState,
+          clientMeta: {
+            clientName: state.reportMetadata.clientName || 'Cliente não identificado',
+            address: state.reportMetadata.address || inspectionState.localData.cityState || 'Endereço não informado',
+            inspectorName: state.reportMetadata.technician || 'Vistoriador de Campo / Ligvolt',
+            notes: state.reportMetadata.notes || ''
+          }
+        }, diagResult);
+      } else {
+        content.innerHTML = '<p style="padding: 20px; color: #DC2626;">Módulo de vistoria não disponível ou pendente de cálculo.</p>';
+      }
+    } else if (state.activeDocType === 'vistoria_preliminar') {
+      const diagResult = inspectionState.diagnosticResult || (SmartInspection ? SmartInspection.evaluateInspectionViability(inspectionState) : null);
+      if (SmartInspection && diagResult) {
+        content.innerHTML = SmartInspection.buildPreliminaryInspectionReportHTML({
+          ...inspectionState,
+          clientMeta: {
+            clientName: state.reportMetadata.clientName || 'Cliente não identificado',
+            address: state.reportMetadata.address || inspectionState.localData.cityState || 'Endereço não informado',
+            inspectorName: state.reportMetadata.technician || 'Vistoriador / Ligvolt',
+            notes: state.reportMetadata.notes || ''
+          }
+        }, diagResult);
+      } else {
+        content.innerHTML = '<p style="padding: 20px; color: #DC2626;">Módulo de vistoria não disponível ou pendente de cálculo.</p>';
+      }
+    } else if (state.activeDocType === 'relatorio') {
       const diagResult = inspectionState.diagnosticResult || (SmartInspection ? SmartInspection.evaluateInspectionViability(inspectionState) : null);
       if (SmartInspection && diagResult) {
         content.innerHTML = SmartInspection.buildPreliminaryInspectionReportHTML({

@@ -591,6 +591,14 @@ function runAllTests() {
   assert(report15Html.includes('Recomendações Técnicas para a Equipe de Vistoria Presencial'), 'Subseção Recomendações Técnicas presente');
   assert(report15Html.includes('C125 400V 10kA'), 'Inscrição observada registrada na tabela de evidências');
 
+  console.log('\n--- CASO 16: Geração do Levantamento Técnico Simplificado de Campo ---');
+  const simplifiedHtml = SmartInspection.buildSimplifiedFieldSurveyHTML(inspCase15, diagCase15);
+  assert(simplifiedHtml.includes('LEVANTAMENTO TÉCNICO SIMPLIFICADO'), 'Título do levantamento simplificado presente');
+  assert(simplifiedHtml.includes('Edifício Vista Mar'), 'Cliente presente no levantamento simplificado');
+  assert(simplifiedHtml.includes('Providências Técnicas Indispensáveis para Instalar'), 'Seção de providências práticas presente');
+  assert(simplifiedHtml.includes('Registro Fotográfico Essencial do Local'), 'Seção de fotos essenciais presente');
+  assert(simplifiedHtml.includes('Responsável pelo Levantamento de Campo'), 'Bloco de assinatura presente');
+
   // RESUMO DOS TESTES
   console.log('\n====================================================');
   console.log(`🏁 RESULTADO FINAL: ${passed} PASSARAM | ${failed} FALHARAM`);
