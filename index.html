@@ -38,10 +38,10 @@
       </div>
 
       <div class="header-actions">
-        <button type="button" class="btn-ghost" id="btnResetHeader" title="Reiniciar parâmetros com valores padrão">
+        <button type="button" class="btn-header-reset" id="btnResetHeader" title="Reiniciar parâmetros com valores padrão">
           ↺ Novo
         </button>
-        <button type="button" class="btn-primary-header" id="btnExportHeader" title="Visualizar e exportar laudo ou memória de cálculo">
+        <button type="button" class="btn-header-pdf" id="btnExportHeader" title="Visualizar e exportar laudo ou memória de cálculo">
           📄 Gerar Laudo PDF
         </button>
       </div>
@@ -90,8 +90,21 @@
           <div class="wizard-question-box">
             <h3 class="wizard-question-title">🏠 1. Qual o tipo de local?</h3>
             <p class="wizard-question-subtitle">Selecione onde será realizada a instalação.</p>
-            <div class="operator-field-hint">
-              💡 <strong>Orientação de Campo:</strong> Em condomínios residenciais, confirme se o ponto será alimentado pelo medidor privativo do morador ou pelo quadro de serviços gerais do condomínio (que costuma exigir submedidor).
+            <div class="question-hint-wrapper">
+              <button type="button" class="btn-toggle-hint" data-hint-id="hintQ1" aria-expanded="false">
+                <span class="hint-btn-icon">💡</span>
+                <span class="hint-btn-text">Dica de campo</span>
+                <span class="hint-chevron">▾</span>
+              </button>
+              <div id="hintQ1" class="operator-hint-card" style="display: none;">
+                <div class="hint-card-header">
+                  <div class="hint-card-badge"><span>💡</span> <strong>Orientação de Campo</strong></div>
+                  <button type="button" class="btn-close-hint" data-close-hint="hintQ1" title="Fechar dica">✕ Fechar</button>
+                </div>
+                <div class="hint-card-content">
+                  <p>Em condomínios residenciais, confirme se o ponto será alimentado pelo medidor privativo do morador ou pelo quadro de serviços gerais do condomínio (que costuma exigir submedidor e aprovação em assembleia).</p>
+                </div>
+              </div>
             </div>
             <div class="visual-tiles-grid">
               <label class="visual-tile-item">
@@ -133,8 +146,21 @@
           <div class="wizard-question-box">
             <h3 class="wizard-question-title">📍 2. Onde o carregador ficará posicionado?</h3>
             <p class="wizard-question-subtitle">O ambiente determina regras de segurança e proteção contra incêndio e água.</p>
-            <div class="operator-field-hint">
-              💡 <strong>Orientação de Campo:</strong> Garagens em subsolo ou confinadas exigem atenção especial a rotas de fuga, extintores e botoeira de desligamento de emergência fora da área do sinistro.
+            <div class="question-hint-wrapper">
+              <button type="button" class="btn-toggle-hint" data-hint-id="hintQ2" aria-expanded="false">
+                <span class="hint-btn-icon">💡</span>
+                <span class="hint-btn-text">Dica de campo</span>
+                <span class="hint-chevron">▾</span>
+              </button>
+              <div id="hintQ2" class="operator-hint-card" style="display: none;">
+                <div class="hint-card-header">
+                  <div class="hint-card-badge"><span>💡</span> <strong>Orientação de Campo</strong></div>
+                  <button type="button" class="btn-close-hint" data-close-hint="hintQ2" title="Fechar dica">✕ Fechar</button>
+                </div>
+                <div class="hint-card-content">
+                  <p>Garagens em subsolo ou confinadas exigem atenção especial a rotas de fuga, extintores e botoeira de desligamento de emergência fora da área do sinistro.</p>
+                </div>
+              </div>
             </div>
             <div class="visual-tiles-grid">
               <label class="visual-tile-item">
@@ -183,8 +209,21 @@
                 ⚡ Sugestão Padrão Ligvolt (Editável)
               </span>
             </div>
-            <div class="operator-field-hint">
-              💡 <strong>Como identificar sem ser técnico:</strong> Conte as alavancas do disjuntor geral: <strong>1 alavanca</strong> = Monofásico; <strong>2 unidas</strong> = Bifásico; <strong>3 unidas</strong> = Trifásico. Se tiver dúvida, selecione <em>"Não sei"</em> e fotografe o quadro no Passo 2.
+            <div class="question-hint-wrapper">
+              <button type="button" class="btn-toggle-hint" data-hint-id="hintQ3" aria-expanded="false">
+                <span class="hint-btn-icon">💡</span>
+                <span class="hint-btn-text">Como identificar (Dica)</span>
+                <span class="hint-chevron">▾</span>
+              </button>
+              <div id="hintQ3" class="operator-hint-card" style="display: none;">
+                <div class="hint-card-header">
+                  <div class="hint-card-badge"><span>💡</span> <strong>Identificação sem ser técnico</strong></div>
+                  <button type="button" class="btn-close-hint" data-close-hint="hintQ3" title="Fechar dica">✕ Fechar</button>
+                </div>
+                <div class="hint-card-content">
+                  <p>Conte as alavancas do disjuntor geral: <strong>1 alavanca</strong> = Monofásico; <strong>2 unidas</strong> = Bifásico; <strong>3 unidas</strong> = Trifásico. Se tiver dúvida, selecione <em>"Não sei"</em> e fotografe o quadro no Passo 2.</p>
+                </div>
+              </div>
             </div>
             <div class="visual-tiles-grid" id="inspSupplyTypeGrid">
               <label class="visual-tile-item">
@@ -233,8 +272,21 @@
                 ⚡ Sugestão Operacional
               </span>
             </div>
-            <div class="operator-field-hint">
-              💡 <strong>Orientação de Campo:</strong> A tensão depende da concessionária local (ex: 127V/220V em SP/RJ; 220V/380V em Brasília e Goiás). Se tiver dúvida, selecione <em>"Não sei"</em> para comprovar no relógio de medição.
+            <div class="question-hint-wrapper">
+              <button type="button" class="btn-toggle-hint" data-hint-id="hintQ4" aria-expanded="false">
+                <span class="hint-btn-icon">💡</span>
+                <span class="hint-btn-text">Dica de tensão</span>
+                <span class="hint-chevron">▾</span>
+              </button>
+              <div id="hintQ4" class="operator-hint-card" style="display: none;">
+                <div class="hint-card-header">
+                  <div class="hint-card-badge"><span>💡</span> <strong>Orientação de Tensão</strong></div>
+                  <button type="button" class="btn-close-hint" data-close-hint="hintQ4" title="Fechar dica">✕ Fechar</button>
+                </div>
+                <div class="hint-card-content">
+                  <p>A tensão depende da concessionária local (ex: 127V/220V em SP/RJ; 220V/380V em Brasília e Goiás). Se tiver dúvida, selecione <em>"Não sei"</em> para comprovar no relógio de medição.</p>
+                </div>
+              </div>
             </div>
             
             <!-- Opções rápidas dinâmicas -->
@@ -266,8 +318,21 @@
           <div class="wizard-question-box">
             <h3 class="wizard-question-title">⚡ 5. Quantos veículos serão carregados ao mesmo tempo?</h3>
             <p class="wizard-question-subtitle">Escolha entre 1 a 3 veículos ou selecione mais de 3 para inserir a quantidade manualmente.</p>
-            <div class="operator-field-hint">
-              💡 <strong>Orientação de Campo:</strong> Para 1 ponto de recarga, dimensiona-se circuito direto. Para 2 ou mais veículos simultâneos, o app avalia a viabilidade de um subquadro coletivo (QGBT-EV).
+            <div class="question-hint-wrapper">
+              <button type="button" class="btn-toggle-hint" data-hint-id="hintQ5" aria-expanded="false">
+                <span class="hint-btn-icon">💡</span>
+                <span class="hint-btn-text">Dica de capacidade</span>
+                <span class="hint-chevron">▾</span>
+              </button>
+              <div id="hintQ5" class="operator-hint-card" style="display: none;">
+                <div class="hint-card-header">
+                  <div class="hint-card-badge"><span>💡</span> <strong>Orientação de Capacidade</strong></div>
+                  <button type="button" class="btn-close-hint" data-close-hint="hintQ5" title="Fechar dica">✕ Fechar</button>
+                </div>
+                <div class="hint-card-content">
+                  <p>Para 1 ponto de recarga, dimensiona-se circuito direto. Para 2 ou mais veículos simultâneos, o app avalia a viabilidade de um subquadro coletivo (QGBT-EV).</p>
+                </div>
+              </div>
             </div>
             <div class="visual-tiles-grid">
               <label class="visual-tile-item">
@@ -323,8 +388,21 @@
           <div class="wizard-question-box">
             <h3 class="wizard-question-title">🔌 6. Qual o tipo de carregador pretendido?</h3>
             <p class="wizard-question-subtitle">O Wallbox é mais rápido (32A); a tomada convencional/industrial é mais lenta (16A).</p>
-            <div class="operator-field-hint">
-              💡 <strong>Orientação de Campo:</strong> O Wallbox fixo de 7,4 kW (32A) é a melhor solução residencial, garantindo carga completa em 6h a 8h com segurança normativa total (NBR 17019).
+            <div class="question-hint-wrapper">
+              <button type="button" class="btn-toggle-hint" data-hint-id="hintQ6" aria-expanded="false">
+                <span class="hint-btn-icon">💡</span>
+                <span class="hint-btn-text">Dica do equipamento</span>
+                <span class="hint-chevron">▾</span>
+              </button>
+              <div id="hintQ6" class="operator-hint-card" style="display: none;">
+                <div class="hint-card-header">
+                  <div class="hint-card-badge"><span>💡</span> <strong>Recomendação Técnica</strong></div>
+                  <button type="button" class="btn-close-hint" data-close-hint="hintQ6" title="Fechar dica">✕ Fechar</button>
+                </div>
+                <div class="hint-card-content">
+                  <p>O Wallbox fixo de 7,4 kW (32A) é a melhor solução residencial, garantindo carga completa em 6h a 8h com segurança normativa total (NBR 17019). Tomadas comuns aquecem e não são seguras para recarga contínua.</p>
+                </div>
+              </div>
             </div>
             <div class="visual-tiles-grid">
               <label class="visual-tile-item">
@@ -358,8 +436,21 @@
           <div class="wizard-question-box">
             <h3 class="wizard-question-title">📏 7. Qual a distância aproximada do quadro elétrico até a vaga?</h3>
             <p class="wizard-question-subtitle">Importante para calcular a queda de tensão e bitola dos cabos. Acima de 50m, insira a metragem exata.</p>
-            <div class="operator-field-hint">
-              💡 <strong>Dica para Medição:</strong> Considere o caminho real que a tubulação percorrerá por paredes, vigas e piso (não a linha reta). Distâncias longas (>25m) exigem cabos mais grossos para não ter perda de potência.
+            <div class="question-hint-wrapper">
+              <button type="button" class="btn-toggle-hint" data-hint-id="hintQ7" aria-expanded="false">
+                <span class="hint-btn-icon">💡</span>
+                <span class="hint-btn-text">Como estimar o trajeto</span>
+                <span class="hint-chevron">▾</span>
+              </button>
+              <div id="hintQ7" class="operator-hint-card" style="display: none;">
+                <div class="hint-card-header">
+                  <div class="hint-card-badge"><span>💡</span> <strong>Medição do Trajeto</strong></div>
+                  <button type="button" class="btn-close-hint" data-close-hint="hintQ7" title="Fechar dica">✕ Fechar</button>
+                </div>
+                <div class="hint-card-content">
+                  <p>Considere o caminho real que a tubulação percorrerá por paredes, vigas e piso (não a linha reta pelo ar). Distâncias longas (>25m) exigem cabos mais grossos para evitar queda de tensão.</p>
+                </div>
+              </div>
             </div>
             <div class="visual-tiles-grid">
               <label class="visual-tile-item">
@@ -423,8 +514,21 @@
           <div class="wizard-question-box">
             <h3 class="wizard-question-title">🏙️ 8. Qual a cidade e estado da instalação?</h3>
             <p class="wizard-question-subtitle">Necessário para identificar normas locais do Corpo de Bombeiros (ex: CBMERJ no RJ) e concessionária.</p>
-            <div class="operator-field-hint">
-              💡 <strong>Impacto Normativo:</strong> A localização define as instruções técnicas do Corpo de Bombeiros estadual (como exigências de chuveiros automáticos em subsolos) e as normas de medição da distribuidora.
+            <div class="question-hint-wrapper">
+              <button type="button" class="btn-toggle-hint" data-hint-id="hintQ8" aria-expanded="false">
+                <span class="hint-btn-icon">💡</span>
+                <span class="hint-btn-text">Impacto normativo</span>
+                <span class="hint-chevron">▾</span>
+              </button>
+              <div id="hintQ8" class="operator-hint-card" style="display: none;">
+                <div class="hint-card-header">
+                  <div class="hint-card-badge"><span>💡</span> <strong>Normas e Concessionária</strong></div>
+                  <button type="button" class="btn-close-hint" data-close-hint="hintQ8" title="Fechar dica">✕ Fechar</button>
+                </div>
+                <div class="hint-card-content">
+                  <p>A localização define as instruções técnicas do Corpo de Bombeiros estadual (como exigências de chuveiros automáticos em subsolos) e as normas de medição da distribuidora.</p>
+                </div>
+              </div>
             </div>
             <div style="display: flex; gap: 10px; max-width: 480px; align-items: center;">
               <input type="text" id="inspCityStateInput" class="form-input" placeholder="Ex: Rio de Janeiro - RJ ou São Paulo - SP" value="São Paulo - SP" />

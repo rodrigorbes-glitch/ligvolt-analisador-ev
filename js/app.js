@@ -518,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function () {
     btnExportHeader.addEventListener('click', () => {
       // Se estiver na vistoria, abre o laudo de vistoria; se no avançado, abre o relatório de engenharia
       const isVistoria = document.getElementById('mode-vistoria') && !document.getElementById('mode-vistoria').classList.contains('is-hidden');
-      UI.openReportModal(isVistoria ? 'vistoria_preliminar' : 'relatorio');
+      UI.openReportModal(isVistoria ? 'vistoria_resumida' : 'relatorio');
     });
   }
 
@@ -899,6 +899,34 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.key === 'Escape' && reportModal && reportModal.classList.contains('is-open')) {
       UI.closeReportModal();
     }
+  });
+
+  // Toggle e Fechamento de Dicas Práticas do Operador de Campo
+  document.querySelectorAll('.btn-toggle-hint').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const targetId = this.dataset.hintId;
+      const card = document.getElementById(targetId);
+      if (!card) return;
+      const isVisible = card.style.display !== 'none';
+      if (isVisible) {
+        card.style.display = 'none';
+        this.setAttribute('aria-expanded', 'false');
+      } else {
+        card.style.display = 'block';
+        this.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  document.querySelectorAll('.btn-close-hint').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const targetId = this.dataset.closeHint;
+      const card = document.getElementById(targetId);
+      if (!card) return;
+      card.style.display = 'none';
+      const toggleBtn = document.querySelector(`.btn-toggle-hint[data-hint-id="${targetId}"]`);
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+    });
   });
 
   // 13. Inicialização Completa
