@@ -438,7 +438,7 @@
         </div>
         <div class="tech-summary-value">${state.distance} metros</div>
         <div class="tech-summary-sub">
-          <span>Trecho até os pontos</span>
+          <span>${state.installationMethod === 'F' ? 'Eletrocalha / Teto (Método F)' : 'Eletroduto (Método B1)'}</span>
           ${distBadge}
         </div>
       </div>
@@ -1743,7 +1743,42 @@
   function syncVistoriaToTechnical(field, value) {
     const loc = inspectionState.localData;
 
-    if (field === 'supplyType') {
+        if (field === 'locationType') {
+      state.locationType = value;
+      const selLoc = document.getElementById('selectTechLocationType');
+      if (selLoc) selLoc.value = value;
+    } else if (field === 'installArea') {
+      state.installArea = value;
+      const selArea = document.getElementById('selectTechInstallArea');
+      if (selArea) selArea.value = value;
+      const subAlert = document.getElementById('techSubsoloAlert');
+      if (subAlert) subAlert.style.display = (value === 'subsolo') ? 'block' : 'none';
+    } else if (field === 'cityState') {
+      state.cityState = value;
+      state.reportMetadata.address = value;
+      const cityInput = document.getElementById('inputTechCityState');
+      if (cityInput) cityInput.value = value;
+    } else if (field === 'installMethod') {
+      state.installationMethod = (value === 'F' ? 'F' : 'B1');
+      const selInst = document.getElementById('selectInstallMethod');
+      if (selInst) selInst.value = state.installationMethod;
+      const selTechInst = document.getElementById('selectTechInstallMethod');
+      if (selTechInst) selTechInst.value = state.installationMethod;
+    } else     if (field === 'locationType') {
+      loc.locationType = value;
+      document.querySelectorAll('input[name="inspLocationType"]').forEach(r => {
+        r.checked = (r.value === value);
+      });
+    } else if (field === 'installArea') {
+      loc.installArea = value;
+      document.querySelectorAll('input[name="inspInstallArea"]').forEach(r => {
+        r.checked = (r.value === value);
+      });
+    } else if (field === 'cityState') {
+      loc.cityState = value;
+      const inpCity = document.getElementById('inspCityStateInput');
+      if (inpCity) inpCity.value = value;
+    } else if (field === 'supplyType') {
       if (value === 'nao_sei') {
         state.supplyType = 'bifasica';
         state.supplyTypeStatus = 'nao_confirmado';
@@ -1898,6 +1933,10 @@
       document.querySelectorAll('input[name="inspInstallMethod"]').forEach(r => {
         r.checked = (r.value === loc.installMethod);
       });
+      const selOldInst = document.getElementById('selectInstallMethod');
+      if (selOldInst) selOldInst.value = loc.installMethod;
+      const selTechInst = document.getElementById('selectTechInstallMethod');
+      if (selTechInst) selTechInst.value = loc.installMethod;
     }
 
     saveInspectionToLocalStorage();
@@ -1979,9 +2018,28 @@
       });
     }
 
+        // Dados Físicos do Imóvel e Ambiente
+    state.locationType = loc.locationType || 'residencia';
+    const selLoc = document.getElementById('selectTechLocationType');
+    if (selLoc) selLoc.value = state.locationType;
+
+    state.installArea = loc.installArea || 'garagem_aberta';
+    const selArea = document.getElementById('selectTechInstallArea');
+    if (selArea) selArea.value = state.installArea;
+
+    const subAlert = document.getElementById('techSubsoloAlert');
+    if (subAlert) subAlert.style.display = (state.installArea === 'subsolo') ? 'block' : 'none';
+
+    state.cityState = loc.cityState || 'São Paulo - SP';
+    const cityInput = document.getElementById('inputTechCityState');
+    if (cityInput) cityInput.value = state.cityState;
+
     state.installationMethod = (loc.installMethod === 'F' ? 'F' : 'B1');
     const selInst = document.getElementById('selectInstallMethod');
     if (selInst) selInst.value = state.installationMethod;
+    const selTechInst = document.getElementById('selectTechInstallMethod');
+    if (selTechInst) selTechInst.value = state.installationMethod;
+
 
     renderChargersList();
     recalculateAndRender();

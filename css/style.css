@@ -2964,23 +2964,39 @@ input:checked + .slider:before {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  .app-container,
   .app-header,
   .mode-switch-container,
+  #mode-vistoria,
+  #mode-avancado,
+  #wizardContainer,
+  .stepper-container,
+  .wizard-step,
   .tab-nav-wrapper,
   .bottom-actions-bar,
+  .btn-floating-view-laudo,
   .modal-header-bar,
   .doc-tabs-bar,
   .doc-selector-mobile-wrapper,
   .meta-input-grid,
   .diag-bottom-actions,
+  .presets-bar,
+  .ai-scan-overlay,
   .app-toast {
     display: none !important;
   }
-  .modal-backdrop {
+  .modal-backdrop,
+  #reportModal {
     position: static !important;
     padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
     background: none !important;
     display: block !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
   }
   .modal-window {
     border: none !important;
@@ -2988,11 +3004,20 @@ input:checked + .slider:before {
     max-width: 100% !important;
     width: 100% !important;
     margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
   }
   .modal-scroll-area {
     padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
     max-height: none !important;
     overflow: visible !important;
+  }
+  #reportModalContent {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   .report-document, .dossier-document {
     font-size: 10pt !important;

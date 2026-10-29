@@ -11,28 +11,51 @@
     font-size: 10pt !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
   }
 
+  /* Oculta o container principal da aplicação para isolar o relatório */
+  .app-container,
   .app-header,
+  .mode-switch-container,
+  #mode-vistoria,
+  #mode-avancado,
+  #wizardContainer,
+  .stepper-container,
+  .wizard-step,
   .tabs-navigation,
   .diag-hero-card,
   .tab-pane,
+  .bottom-actions-bar,
+  .btn-floating-view-laudo,
+  .app-toast,
+  .ai-scan-overlay,
   .modal-header-bar,
+  .doc-selector-mobile-wrapper,
+  .doc-tabs-bar,
   .meta-input-grid,
   .btn-print,
   .btn-close-modal,
-  .presets-bar {
+  .presets-bar,
+  .diag-bottom-actions {
     display: none !important;
   }
 
-  /* Exibe exclusivamente a área do relatório */
-  .modal-backdrop {
+  /* Exibe exclusivamente a área do relatório no topo absoluto da página */
+  .modal-backdrop,
+  #reportModal {
     display: block !important;
     position: static !important;
     background: transparent !important;
     backdrop-filter: none !important;
     padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
     overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   .modal-window {
@@ -41,12 +64,22 @@
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
+    padding: 0 !important;
     border-radius: 0 !important;
+    background: transparent !important;
   }
 
   .modal-scroll-area {
     max-height: none !important;
     overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  #reportModalContent {
+    width: 100% !important;
+    margin: 0 !important;
     padding: 0 !important;
   }
 

@@ -130,6 +130,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const cableInsulSelect = document.getElementById('selectCableInsulation');
     if (cableInsulSelect) cableInsulSelect.value = UI.state.cableInsulation;
 
+        const locTypeSelect = document.getElementById('selectTechLocationType');
+    if (locTypeSelect) locTypeSelect.value = UI.state.locationType || UI.inspectionState.localData.locationType || 'residencia';
+
+    const installAreaSelect = document.getElementById('selectTechInstallArea');
+    if (installAreaSelect) installAreaSelect.value = UI.state.installArea || UI.inspectionState.localData.installArea || 'garagem_aberta';
+
+    const cityStateInput = document.getElementById('inputTechCityState');
+    if (cityStateInput) cityStateInput.value = UI.state.cityState || UI.inspectionState.localData.cityState || 'São Paulo - SP';
+
+    const techInstallMethod = document.getElementById('selectTechInstallMethod');
+    if (techInstallMethod) techInstallMethod.value = UI.state.installationMethod;
+
+    const subAlert = document.getElementById('techSubsoloAlert');
+    if (subAlert) {
+      const area = installAreaSelect ? installAreaSelect.value : '';
+      subAlert.style.display = (area === 'subsolo') ? 'block' : 'none';
+    }
+
     const installMethodSelect = document.getElementById('selectInstallMethod');
     if (installMethodSelect) installMethodSelect.value = UI.state.installationMethod;
 
@@ -317,6 +335,53 @@ document.addEventListener('DOMContentLoaded', function () {
   if (selectCableInsul) {
     selectCableInsul.addEventListener('change', function () {
       UI.state.cableInsulation = this.value;
+      UI.recalculateAndRender();
+    });
+  }
+
+  
+  const selectTechLocationType = document.getElementById('selectTechLocationType');
+  if (selectTechLocationType) {
+    selectTechLocationType.addEventListener('change', function () {
+      UI.state.locationType = this.value;
+      UI.inspectionState.localData.locationType = this.value;
+      UI.syncTechnicalToVistoria('locationType', this.value);
+      UI.saveInspectionToLocalStorage();
+      UI.recalculateAndRender();
+    });
+  }
+
+  const selectTechInstallArea = document.getElementById('selectTechInstallArea');
+  if (selectTechInstallArea) {
+    selectTechInstallArea.addEventListener('change', function () {
+      UI.state.installArea = this.value;
+      UI.inspectionState.localData.installArea = this.value;
+      UI.syncTechnicalToVistoria('installArea', this.value);
+      const subAlert = document.getElementById('techSubsoloAlert');
+      if (subAlert) subAlert.style.display = (this.value === 'subsolo') ? 'block' : 'none';
+      UI.saveInspectionToLocalStorage();
+      UI.recalculateAndRender();
+    });
+  }
+
+  const inputTechCityState = document.getElementById('inputTechCityState');
+  if (inputTechCityState) {
+    inputTechCityState.addEventListener('input', function () {
+      UI.state.cityState = this.value;
+      UI.state.reportMetadata.address = this.value;
+      UI.inspectionState.localData.cityState = this.value;
+      UI.syncTechnicalToVistoria('cityState', this.value);
+      UI.saveInspectionToLocalStorage();
+    });
+  }
+
+  const selectTechInstallMethod = document.getElementById('selectTechInstallMethod');
+  if (selectTechInstallMethod) {
+    selectTechInstallMethod.addEventListener('change', function () {
+      UI.state.installationMethod = this.value;
+      const oldSel = document.getElementById('selectInstallMethod');
+      if (oldSel) oldSel.value = this.value;
+      UI.syncTechnicalToVistoria('installationMethod', this.value);
       UI.recalculateAndRender();
     });
   }
@@ -723,6 +788,32 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Sincronização em tempo real dos seletores da Etapa 1 da Vistoria com a Análise Técnica
+  
+  document.querySelectorAll('input[name="inspLocationType"]').forEach(r => {
+    r.addEventListener('change', function () {
+      UI.inspectionState.localData.locationType = this.value;
+      UI.syncVistoriaToTechnical('locationType', this.value);
+      UI.saveInspectionToLocalStorage();
+    });
+  });
+
+  document.querySelectorAll('input[name="inspInstallArea"]').forEach(r => {
+    r.addEventListener('change', function () {
+      UI.inspectionState.localData.installArea = this.value;
+      UI.syncVistoriaToTechnical('installArea', this.value);
+      UI.saveInspectionToLocalStorage();
+    });
+  });
+
+  const cityStep1Input = document.getElementById('inspCityStateInput');
+  if (cityStep1Input) {
+    cityStep1Input.addEventListener('input', function () {
+      UI.inspectionState.localData.cityState = this.value;
+      UI.syncVistoriaToTechnical('cityState', this.value);
+      UI.saveInspectionToLocalStorage();
+    });
+  }
+
   document.querySelectorAll('input[name="inspSupplyType"]').forEach(r => {
     r.addEventListener('change', function () {
       UI.inspectionState.localData.supplyType = this.value;

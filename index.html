@@ -790,15 +790,86 @@
         </section>
 
         <!-- ================================================================
-             ÁREA B: DADOS ELÉTRICOS (PARÂMETROS ESSENCIAIS + CONFIG. AVANÇADAS)
+             ÁREA B: IMÓVEL, POSICIONAMENTO & INFRAESTRUTURA FÍSICA
+             ================================================================ -->
+        <section class="card-panel" id="techAreaPhysicalData">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <span class="panel-title-badge">B</span>
+              Imóvel, Posicionamento & Infraestrutura Física
+            </h2>
+            <span class="form-hint">Tipologia predial, ambiente da vaga, localização normativa e trajeto dos cabos</span>
+          </div>
+
+          <!-- Grid de Localização e Ambiente -->
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label class="form-label" for="selectTechLocationType">Tipo de Imóvel</label>
+              <select id="selectTechLocationType" class="form-control">
+                <option value="residencia" selected>Residência Unifamiliar (Casa)</option>
+                <option value="condominio">Condomínio Edilício (Prédio)</option>
+                <option value="comercio">Estabelecimento Comercial</option>
+                <option value="estacionamento">Estacionamento Rotativo / Privado</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="selectTechInstallArea">Posicionamento da Vaga / Ambiente</label>
+              <select id="selectTechInstallArea" class="form-control">
+                <option value="garagem_aberta" selected>Garagem Aberta / Térreo Ventilado</option>
+                <option value="garagem_fechada">Garagem Fechada Confinada</option>
+                <option value="subsolo">Subsolo de Edificação (Alerta CBMERJ)</option>
+                <option value="externa">Área Externa (Ao Ar Livre - Exige IPW)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="inputTechCityState">Cidade e Estado (UF)</label>
+              <input type="text" id="inputTechCityState" class="form-control" value="São Paulo - SP" placeholder="Ex: São Paulo - SP ou Rio de Janeiro - RJ" />
+            </div>
+          </div>
+
+          <!-- Alerta normativo contextual para Subsolo / CBMERJ -->
+          <div id="techSubsoloAlert" style="display: none; background: #FEF2F2; border-left: 4px solid #DC2626; padding: 10px 14px; border-radius: var(--radius-sm); margin-top: 12px; font-size: 12px; color: #991B1B;">
+            ⚠️ <strong>Atenção Normativa CBMERJ 326/2025:</strong> Instalações em subsolo no Estado do Rio de Janeiro exigem sistema de proteção por chuveiros automáticos (sprinklers) e comando elétrico de corte de emergência.
+          </div>
+
+          <!-- Infraestrutura de Passagem e Distância Física -->
+          <div class="form-grid-2" style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-subtle);">
+            <div class="form-group">
+              <label class="form-label" for="selectTechInstallMethod">
+                Infraestrutura de Passagem dos Cabos (Método NBR 5410)
+                <span class="form-hint">Condição de dissipação térmica dos condutores</span>
+              </label>
+              <select id="selectTechInstallMethod" class="form-control">
+                <option value="B1" selected>Método B1: Eletroduto embutido em alvenaria ou sobre parede</option>
+                <option value="F">Método F: Eletrocalha metálica suspensa / Bandeja no teto</option>
+                <option value="B2">Método B2: Cabo multipolar em eletroduto de seção circular</option>
+                <option value="C">Método C: Cabos unipolares fixados diretamente em parede</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="inputDistance">
+                Distância do Quadro até os Pontos (metros)
+                <span class="form-hint">Comprimento real do circuito para cálculo de queda de tensão</span>
+              </label>
+              <input type="number" id="inputDistance" class="form-control" min="1" max="500" value="20" step="1" />
+              <span class="form-hint" id="distanceOriginHint">Impacto direto no cálculo de bitola por queda de tensão (máx. 4%)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================================================================
+             ÁREA C: DADOS ELÉTRICOS (FORNECIMENTO, MEDIÇÃO & DEMANDA)
              ================================================================ -->
         <section class="card-panel" id="techAreaElectricalData">
           <div class="panel-header">
             <h2 class="panel-title">
-              <span class="panel-title-badge">B</span>
+              <span class="panel-title-badge">C</span>
               Dados Elétricos da Instalação
             </h2>
-            <span class="form-hint">Fornecimento de energia, medição, carregadores e distância</span>
+            <span class="form-hint">Fornecimento de energia, medição, demanda existente e carregadores</span>
           </div>
 
           <!-- Grid dos Parâmetros Primários -->
@@ -859,13 +930,12 @@
             </div>
           </div>
 
-          <!-- Demanda Atual Existente e Distância -->
-          <div class="form-grid-2" style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-subtle);">
-            <!-- Demanda Existente -->
-            <div class="form-group">
+          <!-- Demanda Elétrica Existente -->
+          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-subtle);">
+            <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label">
                 Demanda Elétrica Existente
-                <span class="form-hint">Consumo das cargas prediais atuais</span>
+                <span class="form-hint">Consumo das cargas prediais atuais (medido com alicate amperímetro ou histórico de faturas)</span>
               </label>
               <div id="demandModeBox" class="form-grid-2" style="margin-bottom: 8px;">
                 <select id="selectDemandMode" class="form-control">
@@ -888,20 +958,10 @@
                 <input type="number" id="inputDemandL3" class="form-control" placeholder="Fase C (A)" value="0" title="Demanda na Fase C (se trifásico)" />
               </div>
 
-              <label class="checkbox-inline">
+              <label class="checkbox-inline" style="margin-top: 8px;">
                 <input type="checkbox" id="chkDemandUnknown" />
                 <span>Demanda existente não medida / pendente de medição</span>
               </label>
-            </div>
-
-            <!-- Distância do Quadro aos Pontos -->
-            <div class="form-group">
-              <label class="form-label" for="inputDistance">
-                Distância do Quadro até os Pontos (metros)
-                <span class="form-hint">Comprimento do trajeto dos condutores</span>
-              </label>
-              <input type="number" id="inputDistance" class="form-control" min="1" max="500" value="20" step="1" />
-              <span class="form-hint" id="distanceOriginHint">Origem: Sincronizado com a vistoria guiada</span>
             </div>
           </div>
 
@@ -1006,7 +1066,7 @@
         <section class="card-panel" id="techAreaResults">
           <div class="panel-header">
             <h2 class="panel-title">
-              <span class="panel-title-badge">C</span>
+              <span class="panel-title-badge">D</span>
               Resultados Técnicos & Dimensionamento
             </h2>
             <span class="form-hint">Potência, distribuição de fases, cabos, proteções e topologias</span>
@@ -1029,7 +1089,7 @@
         <section class="card-panel" id="techAreaAdaptations">
           <div class="panel-header">
             <h2 class="panel-title">
-              <span class="panel-title-badge">D</span>
+              <span class="panel-title-badge">E</span>
               Adequações Necessárias & Verificações
             </h2>
             <span class="form-hint">Ações classificadas por criticidade, componentes e verificações prévias</span>
