@@ -967,21 +967,6 @@
         content.innerHTML = '<p style="padding: 20px; color: #DC2626;">Módulo de vistoria não disponível ou pendente de cálculo.</p>';
       }
     } else if (state.activeDocType === 'relatorio') {
-      const diagResult = inspectionState.diagnosticResult || (SmartInspection ? SmartInspection.evaluateInspectionViability(inspectionState) : null);
-      if (SmartInspection && diagResult) {
-        content.innerHTML = SmartInspection.buildPreliminaryInspectionReportHTML({
-          ...inspectionState,
-          clientMeta: {
-            clientName: state.reportMetadata.clientName || 'Cliente não identificado',
-            address: state.reportMetadata.address || inspectionState.localData.cityState || 'Endereço não informado',
-            inspectorName: state.reportMetadata.technician || 'Vistoriador / Ligvolt',
-            notes: state.reportMetadata.notes || ''
-          }
-        }, diagResult);
-      } else {
-        content.innerHTML = '<p style="padding: 20px; color: #DC2626;">Módulo de vistoria não disponível ou pendente de cálculo.</p>';
-      }
-    } else if (state.activeDocType === 'relatorio') {
       content.innerHTML = Report.buildReportHTML(calcResult, diagnostic, state.checklistResponses, state.reportMetadata, inspectionState.photos);
     } else if (state.activeDocType === 'laudo') {
       content.innerHTML = Dossier.buildTechnicalOpinion(calcResult, diagnostic, state.checklistResponses, state.reportMetadata, inspectionState.photos);
