@@ -449,6 +449,7 @@
               Área: <strong>${formatInstallArea(localData.installArea)}</strong> | 
               Qtd. Veículos: <strong>${localData.vehicleCount || 1}</strong> | 
               Equipamento: <strong>${formatChargerType(localData.chargerType)}</strong> | 
+              Passagem: <strong>${formatInstallMethod(localData.installMethod)}</strong> | 
               Distância estimada: <strong>${localData.distanceApprox || 'Não informada'}</strong>
             </td>
           </tr>
@@ -962,8 +963,8 @@
           <tr>
             <td style="background: #F8FAFC;"><strong>Alimentação Elétrica:</strong></td>
             <td>${formatSupplyType(localData.supplyType)} | ${formatVoltage(localData.voltagePreset, localData.customVfn, localData.customVff)}</td>
-            <td style="background: #F8FAFC;"><strong>Carregador / Distância:</strong></td>
-            <td>${formatChargerType(localData.chargerType)} (~${escapeHtml(localData.distanceApprox || '10-25m')})</td>
+            <td style="background: #F8FAFC;"><strong>Carregador / Infra:</strong></td>
+            <td>${formatChargerType(localData.chargerType)} | ${formatInstallMethod(localData.installMethod)} (~${escapeHtml(localData.distanceApprox || '10-25m')})</td>
           </tr>
           <tr>
             <td style="background: #F8FAFC;"><strong>Vistoriador Responsável:</strong></td>
@@ -1034,6 +1035,13 @@
       subsolo: 'Subsolo de Edificação'
     };
     return map[area] || area || 'Não informada';
+  }
+
+  
+  function formatInstallMethod(method) {
+    if (method === 'F') return 'Eletrocalha / Bandeja metálica no teto (Método F)';
+    if (method === 'nao_sei') return 'Infraestrutura a definir em visita';
+    return 'Tubulação / Eletroduto em alvenaria/parede (Método B1)';
   }
 
   function formatChargerType(type) {

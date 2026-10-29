@@ -599,6 +599,51 @@ function runAllTests() {
   assert(simplifiedHtml.includes('Registro Fotográfico Essencial do Local'), 'Seção de fotos essenciais presente');
   assert(simplifiedHtml.includes('Responsável pelo Levantamento de Campo'), 'Bloco de assinatura presente');
 
+  console.log('\n--- CASO 17: Infraestrutura de Passagem de Cabos (Eletrocalha F vs Eletroduto B1) ---');
+  const inspCase17F = {
+    localData: {
+      locationType: 'condominio',
+      installArea: 'garagem_fechada',
+      supplyType: 'trifasica',
+      voltagePreset: '220_380',
+      vehicleCount: 2,
+      chargerType: 'wallbox',
+      distanceApprox: '25-50',
+      installMethod: 'F',
+      cityState: 'Curitiba - PR'
+    },
+    confirmations: {
+      mainBreakerConfirmed: '100',
+      groundingConfirmed: 'sim',
+      rainProtectionConfirmed: 'sim',
+      spaceAvailableConfirmed: 'sim',
+      exclusiveCircuitConfirmed: 'sim',
+      capacityVerified: 'sim',
+      cbmerjSprinklers: 'nao_se_aplica'
+    },
+    photos: [],
+    clientMeta: { clientName: 'Condomínio Solar', address: 'Rua das Flores, 200', inspectorName: 'Técnico Silva' }
+  };
+  const diagCase17F = SmartInspection.evaluateInspectionViability(inspCase17F);
+  const rep17Html = SmartInspection.buildPreliminaryInspectionReportHTML(inspCase17F, diagCase17F);
+  const simp17Html = SmartInspection.buildSimplifiedFieldSurveyHTML(inspCase17F, diagCase17F);
+
+  assert(rep17Html.includes('Eletrocalha / Bandeja metálica no teto (Método F)'), 'Passagem por Eletrocalha presente no Laudo Preliminar');
+  assert(simp17Html.includes('Método F'), 'Método F discriminado no Levantamento Simplificado');
+
+  const calcInstallF = Engine.calculateInstallation({
+    supplyType: 'trifasica',
+    voltagePreset: '220_380',
+    distance: 30,
+    mainBreaker: 100,
+    ambientTemp: 30,
+    groupingCircuits: 1,
+    installationMethod: 'F',
+    cableInsulation: 'pvc',
+    chargers: [{ id: 1, name: 'Wallbox 1', nominalCurrent: 32, enabled: true, phaseConfig: '3F' }]
+  });
+  assert(calcInstallF.chargers[0].cableSection >= 6, 'Cabo calculado para Método F');
+
   // RESUMO DOS TESTES
   console.log('\n====================================================');
   console.log(`🏁 RESULTADO FINAL: ${passed} PASSARAM | ${failed} FALHARAM`);

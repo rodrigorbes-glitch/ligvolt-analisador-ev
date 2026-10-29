@@ -510,20 +510,68 @@
             </div>
           </div>
 
-          <!-- Pergunta 8: Cidade e Estado -->
+          <!-- Pergunta 8: Infraestrutura de Passagem dos Cabos -->
           <div class="wizard-question-box">
-            <h3 class="wizard-question-title">🏙️ 8. Qual a cidade e estado da instalação?</h3>
-            <p class="wizard-question-subtitle">Necessário para identificar normas locais do Corpo de Bombeiros (ex: CBMERJ no RJ) e concessionária.</p>
+            <h3 class="wizard-question-title">🛤️ 8. Como os cabos serão conduzidos até a vaga?</h3>
+            <p class="wizard-question-subtitle">A infraestrutura de passagem determina a dissipação térmica e a capacidade de condução dos condutores.</p>
             <div class="question-hint-wrapper">
               <button type="button" class="btn-toggle-hint" data-hint-id="hintQ8" aria-expanded="false">
                 <span class="hint-btn-icon">💡</span>
-                <span class="hint-btn-text">Impacto normativo</span>
+                <span class="hint-btn-text">Dica de observação</span>
                 <span class="hint-chevron">▾</span>
               </button>
               <div id="hintQ8" class="operator-hint-card" style="display: none;">
                 <div class="hint-card-header">
-                  <div class="hint-card-badge"><span>💡</span> <strong>Normas e Concessionária</strong></div>
+                  <div class="hint-card-badge"><span>💡</span> <strong>O que observar na garagem</strong></div>
                   <button type="button" class="btn-close-hint" data-close-hint="hintQ8" title="Fechar dica">✕ Fechar</button>
+                </div>
+                <div class="hint-card-content">
+                  <p>Olhe para o teto e as paredes da garagem: se houver <strong>calhas metálicas perfuradas suspensas no teto</strong> por onde já passam outros cabos (muito comum em condomínios), selecione <em>Eletrocalha / Bandeja</em>. Se a fiação for passar por <strong>canos plásticos ou metálicos embutidos ou na parede</strong>, selecione <em>Eletroduto / Tubulação</em>.</p>
+                </div>
+              </div>
+            </div>
+            <div class="visual-tiles-grid">
+              <label class="visual-tile-item">
+                <input type="radio" name="inspInstallMethod" value="B1" class="visual-tile-input" checked />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🧱</span>
+                  <span class="tile-title">Tubulação / Eletroduto</span>
+                  <span class="tile-sub">Cano embutido ou sobre parede (B1)</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspInstallMethod" value="F" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">🏗️</span>
+                  <span class="tile-title">Eletrocalha / Bandeja</span>
+                  <span class="tile-sub">Calha metálica suspensa no teto (F)</span>
+                </div>
+              </label>
+              <label class="visual-tile-item">
+                <input type="radio" name="inspInstallMethod" value="nao_sei" class="visual-tile-input" />
+                <div class="visual-tile-label">
+                  <span class="tile-icon">❓</span>
+                  <span class="tile-title">Ainda não definido</span>
+                  <span class="tile-sub">Avaliar na visita técnica</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Pergunta 9: Cidade e Estado -->
+          <div class="wizard-question-box">
+            <h3 class="wizard-question-title">🏙️ 9. Qual a cidade e estado da instalação?</h3>
+            <p class="wizard-question-subtitle">Necessário para identificar normas locais do Corpo de Bombeiros (ex: CBMERJ no RJ) e concessionária.</p>
+            <div class="question-hint-wrapper">
+              <button type="button" class="btn-toggle-hint" data-hint-id="hintQ9" aria-expanded="false">
+                <span class="hint-btn-icon">💡</span>
+                <span class="hint-btn-text">Impacto normativo</span>
+                <span class="hint-chevron">▾</span>
+              </button>
+              <div id="hintQ9" class="operator-hint-card" style="display: none;">
+                <div class="hint-card-header">
+                  <div class="hint-card-badge"><span>💡</span> <strong>Normas e Concessionária</strong></div>
+                  <button type="button" class="btn-close-hint" data-close-hint="hintQ9" title="Fechar dica">✕ Fechar</button>
                 </div>
                 <div class="hint-card-content">
                   <p>A localização define as instruções técnicas do Corpo de Bombeiros estadual (como exigências de chuveiros automáticos em subsolos) e as normas de medição da distribuidora.</p>

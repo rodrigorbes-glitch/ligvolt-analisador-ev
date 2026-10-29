@@ -83,6 +83,7 @@
       vehicleCount: 1,
       chargerType: 'wallbox',
       distanceApprox: '10-25',
+      installMethod: 'B1',
       cityState: 'São Paulo - SP'
     },
     photos: [],
@@ -1820,6 +1821,10 @@
       state.distanceStatus = value === '>50' ? 'confirmado' : 'sugerido';
       const distInput = document.getElementById('inputDistance');
       if (distInput) distInput.value = d;
+    } else if (field === 'installMethod') {
+      state.installationMethod = (value === 'F' ? 'F' : 'B1');
+      const selInst = document.getElementById('selectInstallMethod');
+      if (selInst) selInst.value = state.installationMethod;
     }
 
     recalculateAndRender();
@@ -1888,6 +1893,11 @@
         });
         if (vBox) vBox.style.display = 'none';
       }
+    } else if (field === 'installationMethod') {
+      loc.installMethod = (value === 'F' ? 'F' : 'B1');
+      document.querySelectorAll('input[name="inspInstallMethod"]').forEach(r => {
+        r.checked = (r.value === loc.installMethod);
+      });
     }
 
     saveInspectionToLocalStorage();
@@ -1968,6 +1978,10 @@
         phaseConfig: state.supplyType === 'monofasica' ? 'L1-N' : (state.supplyType === 'bifasica' ? 'L1-L2' : '3F')
       });
     }
+
+    state.installationMethod = (loc.installMethod === 'F' ? 'F' : 'B1');
+    const selInst = document.getElementById('selectInstallMethod');
+    if (selInst) selInst.value = state.installationMethod;
 
     renderChargersList();
     recalculateAndRender();

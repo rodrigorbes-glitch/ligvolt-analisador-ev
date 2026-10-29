@@ -325,6 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (selectInstallMethod) {
     selectInstallMethod.addEventListener('change', function () {
       UI.state.installationMethod = this.value;
+      UI.syncTechnicalToVistoria('installationMethod', this.value);
       UI.recalculateAndRender();
     });
   }
@@ -655,6 +656,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     loc.chargerType = getRadioVal('inspChargerType') || 'wallbox';
+    loc.installMethod = getRadioVal('inspInstallMethod') || 'B1';
 
     const dRadio = getRadioVal('inspDistanceApprox');
     if (dRadio === '>50') {
@@ -701,6 +703,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (loc.chargerType) setRadio('inspChargerType', loc.chargerType);
+    setRadio('inspInstallMethod', loc.installMethod || 'B1');
 
     const dBox = document.getElementById('inspCustomDistanceBox');
     const dInput = document.getElementById('inspInputCustomDistance');
@@ -754,6 +757,15 @@ document.addEventListener('DOMContentLoaded', function () {
       UI.syncVistoriaToTechnical('vehicleCount', count);
     });
   }
+
+  
+  document.querySelectorAll('input[name="inspInstallMethod"]').forEach(r => {
+    r.addEventListener('change', function () {
+      UI.inspectionState.localData.installMethod = this.value;
+      UI.syncVistoriaToTechnical('installMethod', this.value);
+      UI.saveInspectionToLocalStorage();
+    });
+  });
 
   document.querySelectorAll('input[name="inspChargerType"]').forEach(r => {
     r.addEventListener('change', function () {
